@@ -1,7 +1,6 @@
-using Godot;
 using System.Threading.Tasks;
 using System.Linq;
-using System.Collections.Generic;
+using Game.Components;
 
 namespace Game
 {
@@ -9,10 +8,25 @@ namespace Game
     {
         private readonly bool _playerActionInProgress = false;
 
-        public override void Initialize()
+        // public override void Initialize()
+        // {
+        //     // Events.TurnChanged += OnTurnChanged;
+        //     // Events.TileSelect += OnTileSelect;
+        // }
+
+        public override async Task Update()
         {
-            // Events.TurnChanged += OnTurnChanged;
-            // Events.TileSelect += OnTileSelect;
+            var player = Entities.GetPlayer();
+            var enemy = Entities.Query<Enemy, CurrentTurn>().FirstOrDefault();
+
+            if (enemy == null || player == null)
+                return;
+
+            if (player.Has<WaitingForAction>())
+                return;
+
+            player.Add(new WaitingForAction());
+            player.Add(new MoveRange(1));
         }
 
         // private async void OnTileSelect(Entity entity)
