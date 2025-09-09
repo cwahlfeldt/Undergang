@@ -17,7 +17,6 @@ namespace Game
             var dir = DirAccess.Open("res://assets/materials");
             if (dir == null)
             {
-                GD.PrintErr("Could not access materials directory");
                 return;
             }
 
@@ -42,7 +41,6 @@ namespace Game
         {
             if (!_materials.ContainsKey(materialName))
             {
-                GD.PrintErr($"Material not found: {materialName}");
                 return;
             }
 
@@ -53,7 +51,6 @@ namespace Game
 
             if (meshInstance == null)
             {
-                GD.PrintErr($"No MeshInstance3D found in or as {node.Name}");
                 return;
             }
 

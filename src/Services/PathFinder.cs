@@ -23,7 +23,6 @@ namespace Game
 
         private void OnGridReady(IEnumerable<Entity> enumerable)
         {
-            GD.Print("PathFinder: Grid ready");
             SetupPathfinding();
         }
 

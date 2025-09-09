@@ -25,6 +25,7 @@ namespace Game
             _systems.Register<EnemySystem>();
             _systems.Register<RangeSystem>();
             _systems.Register<MovementSystem>();
+            _systems.Register<CombatSystem>();
 
             entityManager.CreateGrid(5);
             entityManager.CreatePlayer();
@@ -37,7 +38,6 @@ namespace Game
 
         private async void OnTurnChanged(Entity entity)
         {
-            GD.Print($"Turn changed to {entity.Get<Name>()}");
             await _systems.Update();
         }
     }

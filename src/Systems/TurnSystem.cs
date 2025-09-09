@@ -20,12 +20,9 @@ namespace Game
             var enemies = Entities.Query<Enemy>();
             var units = new[] { player }.Concat(enemies).ToList();
 
-            GD.Print($"Setting up turn order for {units.Count} units");
-
             for (int i = 0; i < units.Count; i++)
             {
                 units[i].Add(new TurnOrder(i));
-                GD.Print($"Unit {i}: {units[i].Get<Name>()}");
             }
 
             if (units.Any())
@@ -37,7 +34,6 @@ namespace Game
 
         private void StartUnitTurn(Entity unit)
         {
-            GD.Print($"Starting turn for {unit.Get<Name>()}");
             unit.Add(new CurrentTurn());
             unit.Add(new WaitingForAction());
             Events.OnTurnChanged(unit);
@@ -45,10 +41,8 @@ namespace Game
 
         private void OnUnitActionComplete(Entity entity)
         {
-            GD.Print($"Action complete for {entity.Get<Name>()}");
             if (entity.Has<CurrentTurn>())
             {
-                GD.Print("Entity had CurrentTurn, advancing turn");
                 entity.Remove<CurrentTurn>();
                 entity.Remove<WaitingForAction>();
                 AdvanceTurn();
@@ -61,10 +55,7 @@ namespace Game
                 .OrderBy(e => e.Get<TurnOrder>())
                 .ToList();
 
-            GD.Print($"Total units in turn order: {allUnits.Count}");
-
             _currentTurnIndex = (_currentTurnIndex + 1) % allUnits.Count;
-            GD.Print($"Turn advancing to index: {_currentTurnIndex}");
 
             var nextUnit = allUnits[_currentTurnIndex];
             StartUnitTurn(nextUnit);

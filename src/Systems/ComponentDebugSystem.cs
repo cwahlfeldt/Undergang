@@ -51,16 +51,13 @@ namespace Game
 
         private void OnUnitRightClick(Entity unit)
         {
-            GD.Print($"Right clicked unit {unit.Id}");
             if (_selected.Contains(unit.Id))
             {
                 _selected.Remove(unit.Id);
-                GD.Print($"Removed unit {unit.Id} from selection");
             }
             else
             {
                 _selected.Add(unit.Id);
-                GD.Print($"Added unit {unit.Id} to selection");
             }
             UpdateDebug();
         }
