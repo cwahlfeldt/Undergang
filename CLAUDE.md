@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Undergang is a turn-based tactical game built with Godot 4.4 and C#. The game features hex-based grid movement, entity-component-system (ECS) architecture, and tactical combat between players and enemies.
+Undergang is a turn-based tactical game built with Godot 4.5 and C#. The game features hex-based grid movement, entity-component-system (ECS) architecture, and tactical combat between players and enemies.
 
 ## Build and Development Commands
 
@@ -15,7 +15,7 @@ dotnet build
 The project uses .NET 8.0 and builds to `.godot/mono/temp/bin/Debug/Undergang.dll`.
 
 ### Running the Game
-Open the project in Godot 4.4 and run from the editor, or use Godot's export functionality.
+Open the project in Godot 4.5 and run from the editor, or use Godot's export functionality.
 
 ## Architecture
 
