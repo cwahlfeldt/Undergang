@@ -18,18 +18,17 @@ namespace Game
             {
                 if (mover.Has<CurrentTurn>())
                 {
-                var (from, to) = mover.Get<Movement>();
-                var path = PathFinder.FindPath(from, to, mover.Get<MoveRange>());
-                var locations = path.Select(HexGrid.HexToWorld).ToList();
+                    var (from, to) = mover.Get<Movement>();
+                    var path = PathFinder.FindPath(from, to, mover.Get<MoveRange>());
+                    var locations = path.Select(HexGrid.HexToWorld).ToList();
 
-                await Tweener.MoveThrough(mover.Get<Instance>().Node, locations);
+                    await Tweener.MoveThrough(mover.Get<Instance>().Node, locations);
 
-                var fromTile = Entities.GetAt(path.First());
-                var toTile = Entities.GetAt(path.Last());
+                    var fromTile = Entities.GetAt(path.First());
+                    var toTile = Entities.GetAt(path.Last());
 
-                mover.Update(new Coordinate(path.Last()));
-                mover.Remove<Movement>();
-
+                    mover.Update(new Coordinate(path.Last()));
+                    mover.Remove<Movement>();
 
                     Events.OnMoveCompleted(mover, fromTile.Get<Coordinate>(), toTile.Get<Coordinate>());
                     Events.UnitActionComplete(mover);

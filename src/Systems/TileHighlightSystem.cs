@@ -17,26 +17,13 @@ namespace Game
 
         public override void Initialize()
         {
-
-            // Load shader materials
             _highlightMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileHighlight.tres");
             _selectedMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileSelect.tres");
             _defaultMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileBase.tres");
 
-            // Subscribe to events
-            // EventBus.Instance.TileSelect += OnTileSelect;
             Events.TileHover += OnTileHover;
             Events.TileUnhover += OnTileUnhover;
-            // EventBus.Instance.TurnChanged += OnTurnChanged;
         }
-
-        // private void OnTurnChanged(Entity unit)
-        // {
-        //     if (unit.Get<UnitComponent>().Type == UnitType.Player)
-        //     {
-        //         SelectMoveRangeTiles(unit);
-        //     }
-        // }
 
         private void OnTileHover(Entity tile)
         {
@@ -45,22 +32,26 @@ namespace Game
                 !_highlightedTiles.Contains(tile))
             {
                 var player = Entities.Query<Player>().FirstOrDefault();
-                var path = PathFinder.FindPath(player.Get<Coordinate>(), tile.Get<Coordinate>(), player.Get<MoveRange>());
 
-                if (path.Count > 0)
+                if (player.Has<CurrentTurn>())
                 {
-                    // Clear previous highlights first
-                    ClearHighlightedTiles();
+                    var path = PathFinder.FindPath(player.Get<Coordinate>(), tile.Get<Coordinate>(), player.Get<MoveRange>());
 
-                    // Highlight new tiles and add them to tracking
-                    foreach (Vector3I t in path)
+                    if (path.Count > 0)
                     {
-                        var tileTile = Entities.GetAt(t);
+                        // Clear previous highlights first
+                        ClearHighlightedTiles();
 
-                        if (tileTile.Get<Coordinate>() != player.Get<Coordinate>())
+                        // Highlight new tiles and add them to tracking
+                        foreach (Vector3I t in path)
                         {
-                            SetTileMaterial(tileTile, _highlightMaterial);
-                            _highlightedTiles.Add(tileTile); // Add to tracking
+                            var tileTile = Entities.GetAt(t);
+
+                            if (tileTile.Get<Coordinate>() != player.Get<Coordinate>())
+                            {
+                                SetTileMaterial(tileTile, _highlightMaterial);
+                                _highlightedTiles.Add(tileTile); // Add to tracking
+                            }
                         }
                     }
                 }
