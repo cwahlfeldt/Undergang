@@ -16,6 +16,8 @@ namespace Game
 
             foreach (var mover in moveEntites)
             {
+                if (mover.Has<CurrentTurn>())
+                {
                 var (from, to) = mover.Get<Movement>();
                 var path = PathFinder.FindPath(from, to, mover.Get<MoveRange>());
                 var locations = path.Select(HexGrid.HexToWorld).ToList();
@@ -28,8 +30,7 @@ namespace Game
                 mover.Update(new Coordinate(path.Last()));
                 mover.Remove<Movement>();
 
-                if (mover.Has<CurrentTurn>())
-                {
+
                     Events.OnMoveCompleted(mover, fromTile.Get<Coordinate>(), toTile.Get<Coordinate>());
                     Events.UnitActionComplete(mover);
                 }

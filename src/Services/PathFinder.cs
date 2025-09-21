@@ -18,7 +18,6 @@ namespace Game
             Events.Instance.GridReady += OnGridReady;
 
             _entities = entities;
-            // SetupPathfinding();
         }
 
         private void OnGridReady(IEnumerable<Entity> enumerable)

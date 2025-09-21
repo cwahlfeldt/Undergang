@@ -34,6 +34,11 @@ namespace Game
 
         private void StartUnitTurn(Entity unit)
         {
+            if (unit.Has<Player>())
+            {
+                PathFinder.SetupPathfinding();
+            }
+
             unit.Add(new CurrentTurn());
             unit.Add(new WaitingForAction());
             Events.OnTurnChanged(unit);
