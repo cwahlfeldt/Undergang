@@ -5,33 +5,39 @@ using Godot;
 
 namespace Game
 {
-    public class CombatSystem : System
-    {
-        private Entity _player = null;
+	public class CombatSystem : System
+	{
+		private Entity _player = null;
 
-        public override void Initialize()
-        {
-            _player = Entities.GetPlayer();
-        }
-        public override async Task Update()
-        {
-            var enemy = Entities.Query<Enemy, CurrentTurn>().FirstOrDefault();
+		public override void Initialize()
+		{
+			_player = Entities.GetPlayer();
+		}
+		public override async Task Update()
+		{
+			if (_player == null)
+			{
+				GD.Print("CombatSystem: No player found");
+				return;
+			}
 
-            if (_player == null)
-            {
-                GD.Print("CombatSystem: No enemy with current turn or no player found");
-                return;
-            }
+			var enemy = Entities.Query<Enemy, CurrentTurn>().FirstOrDefault();
 
-            if (_player.Has<WaitingForAction>())
-            {
-                GD.Print("CombatSystem: Player already waiting for action");
-                return;
-            }
+			if (enemy == null)
+			{
+				GD.Print("CombatSystem: No enemy with current turn found");
+				return;
+			}
 
-            GD.Print($"CombatSystem: Setting up player action for enemy turn: {enemy.Get<Name>()}");
-            _player.Add(new WaitingForAction());
-            _player.Add(new MoveRange(1));
-        }
-    }
+			if (_player.Has<WaitingForAction>())
+			{
+				GD.Print("CombatSystem: Player already waiting for action");
+				return;
+			}
+
+			GD.Print($"CombatSystem: Setting up player action for enemy turn: {enemy.Get<Name>()}");
+			_player.Add(new WaitingForAction());
+			_player.Add(new MoveRange(1));
+		}
+	}
 }

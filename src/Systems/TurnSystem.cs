@@ -34,10 +34,8 @@ namespace Game
 
         private void StartUnitTurn(Entity unit)
         {
-            if (unit.Has<Player>())
-            {
-                PathFinder.SetupPathfinding();
-            }
+            // This is potentially expensive as hell...???
+            PathFinder.SetupPathfinding();
 
             unit.Add(new CurrentTurn());
             unit.Add(new WaitingForAction());

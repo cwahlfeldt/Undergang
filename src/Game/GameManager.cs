@@ -25,7 +25,7 @@ namespace Game
 			_systems.Register<PlayerSystem>();
 			_systems.Register<RangeSystem>();
 			_systems.Register<MovementSystem>();
-			// _systems.Register<CombatSystem>();
+			_systems.Register<CombatSystem>();
 
 			entityManager.CreateGrid(5);
 			entityManager.CreatePlayer();
