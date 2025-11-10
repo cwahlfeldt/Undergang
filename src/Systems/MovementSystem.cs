@@ -16,6 +16,7 @@ namespace Game
 
             var (from, to) = mover.Get<Movement>();
             var path = PathFinder.FindPath(from, to, mover.Get<MoveRange>());
+
             var locations = path.Select(HexGrid.HexToWorld).ToList();
 
             await Tweener.MoveThrough(mover.Get<Instance>().Node, locations);
