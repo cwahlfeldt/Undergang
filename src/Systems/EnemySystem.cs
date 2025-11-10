@@ -33,21 +33,21 @@ namespace Game
             // On the enemy's turn, they ONLY move (they don't attack proactively)
             // This creates the tactical puzzle where the player must avoid enemy threat zones
 
-            // Check if already adjacent to player
-            var attackRangeTiles = RangeSystem.GetRangeCircle(enemyCoord).ToList();
-            bool playerAdjacent = attackRangeTiles.Contains(playerCoord);
+            // Check if player is within this enemy's attack range (uses enemy's range type)
+            var attackRangeTiles = RangeSystem.GetAttackRangeTiles(enemy, enemyCoord).ToList();
+            bool playerInRange = attackRangeTiles.Contains(playerCoord);
 
-            if (playerAdjacent)
+            if (playerInRange)
             {
-                // Player is already adjacent - enemy just waits/passes turn
+                // Player is already in range - enemy just waits/passes turn
                 // (Enemy already attacked when player moved into range on player's turn)
-                GD.Print($"Enemy {enemy.Id} passes turn (player already adjacent)");
+                GD.Print($"Enemy {enemy.Id} passes turn (player already in range)");
                 enemy.Remove<WaitingForAction>();
                 Events.UnitActionComplete(enemy);
             }
             else
             {
-                // Player is not adjacent - MOVE towards player
+                // Player is not in range - MOVE towards player
                 GD.Print($"Enemy {enemy.Id} moves towards player");
                 enemy.Add(new Movement(
                     enemyCoord,

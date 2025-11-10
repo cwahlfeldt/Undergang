@@ -69,9 +69,63 @@ namespace Game
         }
 
         // Range Functions
+
+        /// <summary>
+        /// Gets attack range tiles for a unit based on their range type component
+        /// </summary>
+        public static IEnumerable<Vector3I> GetAttackRangeTiles(Entity unit, Vector3I fromPosition)
+        {
+            if (unit.Has<RangeCircle>())
+                return GetRangeCircle(fromPosition);
+
+            if (unit.Has<RangeDiagonal>())
+                return GetRangeDiagonal(fromPosition);
+
+            if (unit.Has<RangeHex>())
+                return GetRangeHex(fromPosition);
+
+            if (unit.Has<RangeExplosion>())
+                return GetRangeExplosion(fromPosition);
+
+            if (unit.Has<RangeNGon>())
+                return GetRangeNGon(fromPosition);
+
+            // Default to empty if no range type
+            return Enumerable.Empty<Vector3I>();
+        }
+
+        /// <summary>
+        /// Gets attack range tiles for a coordinate (when we don't have the entity)
+        /// Assumes RangeCircle for now - can be extended
+        /// </summary>
         public static IEnumerable<Vector3I> GetRangeCircle(Vector3I center)
         {
             return HexGrid.Directions.Values.Select(dir => center + dir);
+        }
+
+        public static IEnumerable<Vector3I> GetRangeDiagonal(Vector3I center)
+        {
+            // TODO: Implement diagonal range pattern
+            // For now, return circle as placeholder
+            return GetRangeCircle(center);
+        }
+
+        public static IEnumerable<Vector3I> GetRangeHex(Vector3I center)
+        {
+            // TODO: Implement hex range pattern (ring at distance 2?)
+            return GetRangeCircle(center);
+        }
+
+        public static IEnumerable<Vector3I> GetRangeExplosion(Vector3I center)
+        {
+            // TODO: Implement explosion range (all tiles within radius 2?)
+            return GetRangeCircle(center);
+        }
+
+        public static IEnumerable<Vector3I> GetRangeNGon(Vector3I center)
+        {
+            // TODO: Implement N-gon range pattern
+            return GetRangeCircle(center);
         }
 
         public override void Cleanup()

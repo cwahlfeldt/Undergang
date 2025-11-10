@@ -107,8 +107,11 @@ namespace Game
         /// </summary>
         private Entity CheckIfPlayerWasInEnemyRange(Vector3I playerCoord)
         {
-            // Get all tiles within player's attack range
-            var attackRangeTiles = RangeSystem.GetRangeCircle(playerCoord).ToList();
+            var player = Entities.Query<Player>().FirstOrDefault();
+            if (player == null) return null;
+
+            // Get all tiles within player's attack range (based on player's range type)
+            var attackRangeTiles = RangeSystem.GetAttackRangeTiles(player, playerCoord).ToList();
 
             // Check each tile for enemies
             foreach (var coord in attackRangeTiles)
@@ -127,12 +130,15 @@ namespace Game
         }
 
         /// <summary>
-        /// Check if two coordinates are within attack range of each other (adjacent for RangeCircle)
+        /// Check if target coordinate is within attacker's attack range
         /// </summary>
-        private bool IsInAttackRange(Vector3I coord1, Vector3I coord2)
+        private bool IsInAttackRange(Vector3I attackerCoord, Vector3I targetCoord)
         {
-            var tilesInRange = RangeSystem.GetRangeCircle(coord1).ToList();
-            return tilesInRange.Contains(coord2);
+            var player = Entities.Query<Player>().FirstOrDefault();
+            if (player == null) return false;
+
+            var tilesInRange = RangeSystem.GetAttackRangeTiles(player, attackerCoord).ToList();
+            return tilesInRange.Contains(targetCoord);
         }
     }
 }
