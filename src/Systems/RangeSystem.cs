@@ -10,6 +10,9 @@ namespace Game
     {
         public override void Initialize()
         {
+            Events.UnitDefeated += OnUnitDefeated;
+            Events.MoveCompleted += OnMoveCompleted;
+
             Entities.Query<Unit>()
                 .ToList()
                 .ForEach(e =>
@@ -23,6 +26,19 @@ namespace Game
 
         public override async Task Update()
         {
+            UpdateRanges();
+        }
+
+        private void OnUnitDefeated(Entity unit)
+        {
+            // When a unit is defeated, refresh attack ranges
+            GD.Print("RangeSystem: Unit defeated, refreshing attack ranges");
+            UpdateRanges();
+        }
+
+        private void OnMoveCompleted(Entity unit, Vector3I from, Vector3I to)
+        {
+            // When a unit moves, refresh attack ranges
             UpdateRanges();
         }
 
@@ -56,6 +72,12 @@ namespace Game
         public static IEnumerable<Vector3I> GetRangeCircle(Vector3I center)
         {
             return HexGrid.Directions.Values.Select(dir => center + dir);
+        }
+
+        public override void Cleanup()
+        {
+            Events.UnitDefeated -= OnUnitDefeated;
+            Events.MoveCompleted -= OnMoveCompleted;
         }
     }
 }
