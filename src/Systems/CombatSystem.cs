@@ -6,9 +6,12 @@ namespace Game
 {
 	public class CombatSystem : System
 	{
+		private Tweener _tweener;
+
 		public override void Initialize()
 		{
 			Events.UnitDefeated += OnUnitDefeated;
+			_tweener = Tweener.Instance;
 		}
 
 		public override async Task Update()
@@ -21,7 +24,7 @@ namespace Game
 		/// <summary>
 		/// Resolves combat between an attacker and defender
 		/// </summary>
-		public void ResolveCombat(Entity attacker, Entity defender)
+		public async Task ResolveCombat(Entity attacker, Entity defender)
 		{
 			if (attacker == null || defender == null)
 			{
@@ -46,6 +49,19 @@ namespace Game
 			GD.Print($"Defender: {defender.Id} (Enemy: {defender.Has<Enemy>()}, Player: {defender.Has<Player>()})");
 			GD.Print($"Damage: {damage}, Current Health: {currentHealth} -> New Health: {newHealth}");
 
+			// Play attack animation
+			if (attacker.Has<Instance>() && defender.Has<Instance>())
+			{
+				var attackerNode = attacker.Get<Instance>().Node;
+				var defenderNode = defender.Get<Instance>().Node;
+
+				if (attackerNode != null && defenderNode != null)
+				{
+					await _tweener.AttackAnimation(attackerNode, defenderNode.GlobalPosition);
+				}
+			}
+
+			// Apply damage after animation
 			if (newHealth <= 0)
 			{
 				// Defender is defeated
@@ -57,8 +73,6 @@ namespace Game
 				// Update defender's health
 				defender.Update(new Health(newHealth));
 			}
-
-			// TODO: Add attack animation/VFX here
 		}
 
 		/// <summary>

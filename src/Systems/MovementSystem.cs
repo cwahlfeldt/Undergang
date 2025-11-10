@@ -74,7 +74,7 @@ namespace Game
                 if (attacker != null && attacker.Has<Enemy>() && (enemyInRange == null || enemyInRange.Id != attacker.Id))
                 {
                     GD.Print($"Player moved into enemy {attackerId} attack range at {destination}!");
-                    _combatSystem.ResolveCombat(attacker, mover);
+                    await _combatSystem.ResolveCombat(attacker, mover);
 
                     // Check if player was defeated
                     if (!mover.Has<Health>() || mover.Get<Health>() <= 0)
@@ -94,7 +94,7 @@ namespace Game
                     if (_combatSystem.CanAttack(mover, enemyInRange))
                     {
                         GD.Print($"Player attacks enemy {enemyInRange.Id} while moving within attack range!");
-                        _combatSystem.ResolveCombat(mover, enemyInRange);
+                        await _combatSystem.ResolveCombat(mover, enemyInRange);
                     }
                 }
             }

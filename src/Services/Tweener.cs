@@ -112,5 +112,64 @@ namespace Game
         }
 
         public bool IsAnimating(Node target) => _activeTweens.ContainsKey(target);
+
+        /// <summary>
+        /// Animates an attack by lunging toward target position and back
+        /// </summary>
+        public async Task AttackAnimation(
+            Node3D attacker,
+            Vector3 targetPosition,
+            float lungeDuration = 0.15f)
+        {
+            if (attacker == null)
+                return;
+
+            StopAnimation(attacker);
+
+            var startPosition = attacker.GlobalPosition;
+
+            // Look at target first
+            await LookAt(attacker, targetPosition, 0.1f);
+
+            // Lunge forward (80% of the way to target)
+            var lungePosition = startPosition.Lerp(targetPosition, 0.8f);
+
+            var lungeTween = CreateTween();
+            _activeTweens[attacker] = lungeTween;
+
+            var lungeTcs = new TaskCompletionSource();
+            lungeTween.Finished += () => lungeTcs.SetResult();
+
+            lungeTween.TweenProperty(
+                attacker,
+                "global_position",
+                lungePosition,
+                lungeDuration
+            ).SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+
+            await lungeTcs.Task;
+
+            // Quick return back
+            var returnTween = CreateTween();
+            _activeTweens[attacker] = returnTween;
+
+            var returnTcs = new TaskCompletionSource();
+            returnTween.Finished += () =>
+            {
+                _activeTweens.Remove(attacker);
+                returnTcs.SetResult();
+            };
+
+            returnTween.TweenProperty(
+                attacker,
+                "global_position",
+                startPosition,
+                lungeDuration * 0.7f  // Slightly faster return
+            ).SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.In);
+
+            await returnTcs.Task;
+        }
     }
 }
