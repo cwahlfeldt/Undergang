@@ -107,3 +107,136 @@ Systems communicate through the global `Events` service rather than direct coupl
 - Use `Entities.Query<T>()` methods for component-based entity selection
 - Entity creation helpers are available in `Entities` service
 - Always clean up entities when removing them from the game
+
+## Combat System (Hoplite-Style)
+
+The game implements **Hoplite-style tactical combat** where positioning and movement timing are critical.
+
+### Core Combat Mechanics
+
+#### Attack Triggers
+1. **Enemy Reactive Attacks**: Enemies attack when the player moves INTO their threat range
+   - Happens during player's turn, triggered by player movement
+   - Enemy does NOT move when attacking reactively
+   - Only triggers when entering a NEW enemy's range (not when already adjacent)
+
+2. **Player Attacks**: Player attacks when moving WITHIN an enemy's range
+   - Player must be ALREADY adjacent to an enemy before moving
+   - Moving to another tile still adjacent to the same enemy triggers attack
+   - Does NOT trigger when first entering enemy range
+
+3. **Enemy Turn Behavior**: On enemy's own turn, enemies NEVER attack
+   - If player is in range: Enemy passes turn (waits)
+   - If player is NOT in range: Enemy moves toward player
+
+### Combat Flow Implementation
+
+**Key Files:**
+- `src/Systems/CombatSystem.cs` - Combat resolution and damage application
+- `src/Systems/MovementSystem.cs` - Combat trigger logic during movement
+- `src/Systems/EnemySystem.cs` - Enemy AI and turn behavior
+- `src/Systems/RangeSystem.cs` - Attack range calculation and threat marking
+
+**Combat Resolution Steps:**
+1. Check if combat should trigger (based on movement and position)
+2. Play attack animation (lunge forward and back)
+3. Apply damage to defender
+4. Check if defender is defeated
+5. Remove defeated units from game
+6. Update pathfinding and range systems
+
+### Attack Animations
+
+Attack animations are handled by the `Tweener` service:
+```csharp
+await Tweener.AttackAnimation(attackerNode, defenderPosition);
+```
+
+Animation sequence:
+1. Rotate attacker to face target (0.1s)
+2. Lunge 80% toward target (0.15s, Quad Out easing)
+3. Return to starting position (0.105s, Quad In easing)
+4. Total: ~0.315 seconds per attack
+
+### Range System Architecture
+
+The game supports multiple attack range patterns through components:
+
+**Range Type Components:**
+- `RangeCircle` - Adjacent tiles (6 hex neighbors) - Currently implemented
+- `RangeDiagonal` - Diagonal tiles
+- `RangeHex` - Hex ring at distance
+- `RangeExplosion` - Area of effect
+- `RangeNGon` - N-sided polygon pattern
+
+**Dynamic Range Calculation:**
+```csharp
+// Automatically determines range based on unit's range type component
+var attackTiles = RangeSystem.GetAttackRangeTiles(unit, position);
+```
+
+**Threat Zone Marking:**
+- Each frame, `RangeSystem.UpdateRanges()` marks all tiles within each unit's attack range
+- Tiles get `AttackRangeTile(unitId)` component indicating which unit threatens them
+- Used by MovementSystem to detect when player enters enemy threat zones
+
+### Combat Components
+
+**Essential Combat Components:**
+- `Health(int)` - Current hit points
+- `Damage(int)` - Attack damage value
+- `AttackRange(int)` - Attack range distance
+- `AttackRangeTile(int unitId)` - Marks threatened tiles with attacker's ID
+- `RangeCircle/Diagonal/etc` - Marker for attack pattern type
+- `Enemy` - Marker for enemy units
+- `Player` - Marker for player unit
+
+### Adding New Enemy Types with Different Ranges
+
+Example: Creating a ranged sniper enemy with diagonal range:
+
+1. **Implement the range pattern** in `RangeSystem`:
+```csharp
+public static IEnumerable<Vector3I> GetRangeDiagonal(Vector3I center)
+{
+    var tiles = new List<Vector3I>();
+    for (int i = 1; i <= 5; i++)  // 5 tiles range
+    {
+        tiles.Add(center + new Vector3I(i, -i, 0));   // NE
+        tiles.Add(center + new Vector3I(-i, i, 0));   // SW
+        tiles.Add(center + new Vector3I(i, 0, -i));   // SE
+        tiles.Add(center + new Vector3I(-i, 0, i));   // NW
+    }
+    return tiles;
+}
+```
+
+2. **Create the enemy** with the range component:
+```csharp
+var sniper = Entities.CreateEnemy(UnitType.Sniper);
+sniper.Add(new RangeDiagonal());  // Automatically uses diagonal range
+sniper.Add(new Damage(2));
+sniper.Add(new Health(3));
+```
+
+3. **Combat system automatically handles it** - No additional code needed!
+
+### Important Combat Rules
+
+1. **Single Attack Per Movement**: Only one enemy attacks per player movement, even if multiple enemies threaten the destination
+2. **Player Counter-Attack**: Player only counter-attacks the enemy they were ALREADY fighting
+3. **Death During Movement**: If player dies from enemy attack, movement stops immediately
+4. **Turn Completion**: Combat completes before `UnitActionComplete` event fires
+5. **Visual Feedback**: Attack animations complete before damage is applied
+
+### Debugging Combat
+
+Debug output in `CombatSystem.ResolveCombat()` shows:
+- Attacker/Defender IDs and types (Enemy/Player)
+- Damage dealt and health changes
+- Combat trigger location
+
+Enable verbose logging to trace:
+- When enemies pass turn vs move
+- When player enters/exits threat zones
+- When attacks trigger and why
