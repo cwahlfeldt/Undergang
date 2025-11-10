@@ -13,14 +13,6 @@ namespace Game
             Events.UnitDefeated += OnUnitDefeated;
             Events.MoveCompleted += OnMoveCompleted;
 
-            Entities.Query<Unit>()
-                .ToList()
-                .ForEach(e =>
-                {
-                    if (e.Has<Grunt>() || e.Has<Player>())
-                        e.Add(new RangeCircle());
-                });
-
             UpdateRanges();
         }
 
@@ -55,16 +47,13 @@ namespace Game
                 .ToList()
                 .ForEach(u =>
                 {
-                    if (u.Has<RangeCircle>())
+                    var coordsInRange = GetAttackRangeTiles(u, u.Get<Coordinate>()).ToList();
+                    coordsInRange.ForEach(coord =>
                     {
-                        var coordsInRange = GetRangeCircle(u.Get<Coordinate>()).ToList();
-                        coordsInRange.ForEach(coord =>
-                        {
-                            var tile = Entities.GetAt(coord);
-                            if (tile != null && tile.Has<Traversable>())
-                                tile.Add(new AttackRangeTile(u.Id));
-                        });
-                    }
+                        var tile = Entities.GetAt(coord);
+                        if (tile != null && tile.Has<Traversable>())
+                            tile.Add(new AttackRangeTile(u.Id));
+                    });
                 });
         }
 
@@ -105,9 +94,19 @@ namespace Game
 
         public static IEnumerable<Vector3I> GetRangeDiagonal(Vector3I center)
         {
-            // TODO: Implement diagonal range pattern
-            // For now, return circle as placeholder
-            return GetRangeCircle(center);
+            // Directional lines along 6 hex directions, range 2-5
+            // (Hoplite Archer behavior: can shoot in 6 directions, not adjacent, max 5 tiles)
+            var tiles = new List<Vector3I>();
+
+            foreach (var direction in HexGrid.Directions.Values)
+            {
+                for (int distance = 2; distance <= 5; distance++)
+                {
+                    tiles.Add(center + direction * distance);
+                }
+            }
+
+            return tiles;
         }
 
         public static IEnumerable<Vector3I> GetRangeHex(Vector3I center)

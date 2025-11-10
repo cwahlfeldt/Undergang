@@ -129,6 +129,7 @@ namespace Game
             player.Add(new Unit(UnitType.Player));
             player.Add(new Instance(new Node3D()));
             player.Add(new Coordinate(Config.PlayerStart));
+            player.Add(new RangeCircle());
             player.Add(new Damage(1));
             player.Add(new Health(3));
             player.Add(new MoveRange(1));
@@ -141,14 +142,38 @@ namespace Game
         {
             var enemy = AddEntity(new Entity(GetNextId()));
 
-            enemy.Add(new Name("Enemy"));
+            enemy.Add(new Name(unitType.ToString()));
             enemy.Add(new Enemy());
-            enemy.Add(new Grunt());
             enemy.Add(new Unit(unitType));
             enemy.Add(new Instance(new Node3D()));
             enemy.Add(new Coordinate(GetRandomTileEntity().Get<Coordinate>()));
-            enemy.Add(new Damage(1));
-            enemy.Add(new Health(1));
+
+            // Configure stats and range based on enemy type
+            switch (unitType)
+            {
+                case UnitType.Grunt:
+                    enemy.Add(new Grunt());
+                    enemy.Add(new RangeCircle());
+                    enemy.Add(new Damage(1));
+                    enemy.Add(new Health(1));
+                    break;
+
+                case UnitType.Sniper:
+                    enemy.Add(new Sniper());
+                    enemy.Add(new RangeDiagonal());
+                    enemy.Add(new Damage(1));
+                    enemy.Add(new Health(1));
+                    break;
+
+                default:
+                    // Default to Grunt behavior
+                    enemy.Add(new Grunt());
+                    enemy.Add(new RangeCircle());
+                    enemy.Add(new Damage(1));
+                    enemy.Add(new Health(1));
+                    break;
+            }
+
             enemy.Add(new MoveRange(1));
             enemy.Add(new AttackRange(1));
 

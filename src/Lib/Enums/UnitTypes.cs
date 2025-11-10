@@ -2,5 +2,6 @@ public enum UnitType
 {
     Player,
     Enemy,
-    Grunt
+    Grunt,
+    Sniper
 }
