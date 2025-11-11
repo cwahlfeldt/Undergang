@@ -13,6 +13,7 @@ namespace Game
         private StandardMaterial3D _highlightMaterial;
         private StandardMaterial3D _selectedMaterial;
         private StandardMaterial3D _defaultMaterial;
+        private StandardMaterial3D _attackRangeMaterial;
         private Entity _selectedTile;
 
         public override void Initialize()
@@ -20,9 +21,12 @@ namespace Game
             _highlightMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileHighlight.tres");
             _selectedMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileSelect.tres");
             _defaultMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileBase.tres");
+            _attackRangeMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileAttackRange.tres");
 
             Events.TileHover += OnTileHover;
             Events.TileUnhover += OnTileUnhover;
+            Events.UnitHover += OnUnitHover;
+            Events.UnitUnhover += OnUnitUnhover;
         }
 
         private void OnTileHover(Entity tile)
@@ -62,6 +66,38 @@ namespace Game
         {
             if (tile != null &&
                 tile != _selectedTile)
+            {
+                ClearHighlightedTiles();
+            }
+        }
+
+        private void OnUnitHover(Entity unit)
+        {
+            if (unit != null && unit.Has<Unit>())
+            {
+                // Clear any previous highlights
+                ClearHighlightedTiles();
+
+                // Get the unit's attack range tiles
+                var unitCoord = unit.Get<Coordinate>();
+                var attackRangeTiles = RangeSystem.GetAttackRangeTiles(unit, unitCoord).ToList();
+
+                // Highlight all tiles in attack range
+                foreach (var coord in attackRangeTiles)
+                {
+                    var tile = Entities.GetAt(coord);
+                    if (tile != null && tile.Has<Traversable>())
+                    {
+                        SetTileMaterial(tile, _attackRangeMaterial);
+                        _highlightedTiles.Add(tile);
+                    }
+                }
+            }
+        }
+
+        private void OnUnitUnhover(Entity unit)
+        {
+            if (unit != null)
             {
                 ClearHighlightedTiles();
             }
@@ -145,6 +181,8 @@ namespace Game
             // EventBus.Instance.TileSelect -= OnTileSelect;
             Events.TileHover -= OnTileHover;
             Events.TileUnhover -= OnTileUnhover;
+            Events.UnitHover -= OnUnitHover;
+            Events.UnitUnhover -= OnUnitUnhover;
             ClearSelection();
         }
     }
