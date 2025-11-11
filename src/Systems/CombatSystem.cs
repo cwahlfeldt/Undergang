@@ -7,11 +7,13 @@ namespace Game
 	public class CombatSystem : System
 	{
 		private Tweener _tweener;
+		private AnimationSystem _animationSystem;
 
 		public override void Initialize()
 		{
 			Events.UnitDefeated += OnUnitDefeated;
 			_tweener = Tweener.Instance;
+			_animationSystem = Systems.Get<AnimationSystem>();
 		}
 
 		public override async Task Update()
@@ -49,9 +51,14 @@ namespace Game
 			GD.Print($"Defender: {defender.Id} (Enemy: {defender.Has<Enemy>()}, Player: {defender.Has<Player>()})");
 			GD.Print($"Damage: {damage}, Current Health: {currentHealth} -> New Health: {newHealth}");
 
-			// Play attack animation
-			if (attacker.Has<Instance>() && defender.Has<Instance>())
+			// Play attack animation (uses AnimationSystem for state-based animations)
+			if (attacker.Has<Unit>() && defender.Has<Unit>())
 			{
+				await _animationSystem.PlayAttackAnimation(attacker, defender);
+			}
+			else if (attacker.Has<Instance>() && defender.Has<Instance>())
+			{
+				// Fallback to Tweener animation if no Unit component (shouldn't happen normally)
 				var attackerNode = attacker.Get<Instance>().Node;
 				var defenderNode = defender.Get<Instance>().Node;
 

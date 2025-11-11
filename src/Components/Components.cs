@@ -54,4 +54,20 @@ namespace Game.Components
         public static implicit operator (Vector3I, Vector3I)(Movement movement) =>
             (movement.From, movement.To);
     }
+
+    /// <summary>
+    /// Component to track current animation state of a unit
+    /// </summary>
+    public record struct CurrentAnimation(AnimationState State)
+    {
+        public static implicit operator AnimationState(CurrentAnimation animation) => animation.State;
+    }
+
+    /// <summary>
+    /// Component to store reference to the AnimationPlayer node for a unit
+    /// </summary>
+    public record struct AnimationPlayer(Godot.AnimationPlayer Player)
+    {
+        public static implicit operator Godot.AnimationPlayer(AnimationPlayer player) => player.Player;
+    }
 }

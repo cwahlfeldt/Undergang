@@ -145,18 +145,45 @@ The game implements **Hoplite-style tactical combat** where positioning and move
 5. Remove defeated units from game
 6. Update pathfinding and range systems
 
-### Attack Animations
+### Animation System
 
-Attack animations are handled by the `Tweener` service:
-```csharp
-await Tweener.AttackAnimation(attackerNode, defenderPosition);
-```
+The game features a comprehensive animation system designed for Mixamo-rigged characters:
 
-Animation sequence:
-1. Rotate attacker to face target (0.1s)
-2. Lunge 80% toward target (0.15s, Quad Out easing)
-3. Return to starting position (0.105s, Quad In easing)
-4. Total: ~0.315 seconds per attack
+**Files:**
+- `src/Systems/AnimationSystem.cs` - State-based animation controller
+- `src/Components/Components.cs` - Animation components (`CurrentAnimation`, `AnimationPlayer`)
+- `src/Lib/Enums/AnimationState.cs` - Animation states enum
+- `ANIMATIONS.md` - Complete animation integration guide
+
+**Animation States:**
+- `Idle` - Default resting state
+- `Move` - Walking/running animation
+- `Attack` - Attack animation
+- `Hurt` - Taking damage animation
+- `Die` - Death animation
+- `Spawn`, `Victory`, `Defeat` - Optional states
+
+**Automatic Triggers:**
+- Movement → Sets `Move` state during movement, returns to `Idle` when complete
+- Combat → Plays `Attack` (attacker) and `Hurt` (defender) animations
+- Defeat → Triggers `Die` animation
+
+**Animation Naming Convention:**
+Animations must be named: `{UnitType}_{AnimationState}`
+- Examples: `Player_Idle`, `Grunt_Attack`, `Sniper_Move`
+
+**Fallback Behavior:**
+- System works without animations (graceful degradation)
+- Uses Tweener for basic movement interpolation as fallback
+- No errors if AnimationPlayer or animations are missing
+
+**Integration:**
+The system is ready for Mixamo characters. See `ANIMATIONS.md` for complete workflow:
+1. Download character + animations from Mixamo
+2. Import FBX files into Godot
+3. Rename animations following convention
+4. Replace unit scene visuals with Mixamo character
+5. Zero code changes required!
 
 ### Range System Architecture
 

@@ -9,10 +9,12 @@ namespace Game
     public class MovementSystem : System
     {
         private CombatSystem _combatSystem;
+        private AnimationSystem _animationSystem;
 
         public override void Initialize()
         {
             _combatSystem = Systems.Get<CombatSystem>();
+            _animationSystem = Systems.Get<AnimationSystem>();
         }
 
         public override async Task Update()
@@ -57,10 +59,18 @@ namespace Game
                 enemyInRange = CheckIfPlayerWasInEnemyRange(origin);
             }
 
+            // Set to Move animation state
+            if (mover.Has<Unit>())
+            {
+                _animationSystem.SetAnimationState(mover, AnimationState.Move);
+            }
+
             // Animate movement
             var locations = path.Select(HexGrid.HexToWorld).ToList();
             await Tweener.MoveThrough(mover.Get<Instance>().Node, locations);
             mover.Update(new Coordinate(destination));
+
+            // Animation system will set back to Idle via MoveCompleted event
 
             // ENEMY ATTACKS: Check if PLAYER moved into enemy attack range (not if enemy moved)
             // Only trigger if player moved into a NEW threat zone (wasn't already there)
