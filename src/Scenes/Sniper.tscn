@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=4 uid="uid://cy0faxypibhm3"]
+[gd_scene load_steps=7 format=4 uid="uid://cy0faxypibhm3"]
 
 [ext_resource type="Texture2D" uid="uid://b051hn1v02g51" path="res://assets/models/grunt_Image_6.png" id="1_lm2gu"]
 
@@ -41,6 +41,9 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_bto43")
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_opvld"]
+albedo_color = Color(0.16862746, 1, 0.4627451, 1)
+
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_wsnrg"]
 height = 1.49524
 
@@ -53,6 +56,7 @@ transform = Transform3D(0.18, 0, 0, 0, 0.18, 0, 0, 0, 0.18, 0, 0.84, 0)
 [node name="OmegaXD_OmegaXD_0" type="MeshInstance3D" parent="Mesh"]
 mesh = SubResource("ArrayMesh_ywtus")
 skeleton = NodePath("")
+surface_material_override/0 = SubResource("StandardMaterial3D_opvld")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.800174, 0)
