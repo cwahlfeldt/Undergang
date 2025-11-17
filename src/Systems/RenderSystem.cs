@@ -32,7 +32,7 @@ namespace Game
 					if (!entity.Has<Traversable>())
 					{
 						var meshNode = tileInstance.Node.GetNode<MeshInstance3D>("Mesh");
-						var grassModel = meshNode.GetChild(0);
+						var grassModel = meshNode.GetChild<Node3D>(0);
 
 						// Store the transform from the original grass model
 						var originalTransform = grassModel.Transform;
