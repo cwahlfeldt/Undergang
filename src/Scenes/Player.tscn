@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=4 uid="uid://btmreyav6kogk"]
+[gd_scene load_steps=9 format=4 uid="uid://btmreyav6kogk"]
 
 [ext_resource type="Texture2D" uid="uid://v0226vnifpdc" path="res://assets/models/player_Image_2.png" id="1_q7bkb"]
 [ext_resource type="PackedScene" uid="uid://5k2g64tp3h3d" path="res://assets/models/untitled.glb" id="2_o8nw8"]
 [ext_resource type="PackedScene" uid="uid://bd5g6lx74ea3i" path="res://assets/models/player-mech.glb" id="3_djgkh"]
+[ext_resource type="PackedScene" uid="uid://cjk0jqjaotpjc" path="res://assets/models/Knight.glb" id="4_5dq0m"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vqya0"]
 resource_name = "Blue"
@@ -50,6 +51,7 @@ height = 1.57736
 
 [node name="Mesh" type="Node3D" parent="."]
 transform = Transform3D(0.23, 0, 0, 0, 0.23, 0, 0, 0, 0.23, 0, 0.703, 0)
+visible = false
 
 [node name="Cube_009_Blue_0" type="MeshInstance3D" parent="Mesh"]
 extra_cull_margin = 1560.38
@@ -65,3 +67,6 @@ visible = false
 
 [node name="player-mech" parent="." instance=ExtResource("3_djgkh")]
 visible = false
+
+[node name="Knight" parent="." instance=ExtResource("4_5dq0m")]
+transform = Transform3D(-0.69999343, 0, -0.0030298717, 0, 0.7, 0, 0.0030298717, 0, -0.69999343, -0.029959261, -2.3841858e-07, 0.07319832)

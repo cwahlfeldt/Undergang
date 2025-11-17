@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=4 uid="uid://6yv5bvmyqeli"]
+[gd_scene load_steps=7 format=4 uid="uid://6yv5bvmyqeli"]
 
 [ext_resource type="Texture2D" uid="uid://b051hn1v02g51" path="res://assets/models/grunt_Image_6.png" id="1_lm2gu"]
+[ext_resource type="PackedScene" uid="uid://sn2hkfnj1ftd" path="res://assets/models/Skeleton_Warrior.glb" id="2_1706r"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yebu0"]
 resource_name = "OmegaXD"
@@ -49,6 +50,7 @@ transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 
 
 [node name="Mesh" type="Node3D" parent="."]
 transform = Transform3D(0.18, 0, 0, 0, 0.18, 0, 0, 0, 0.18, 0, 0.84, 0)
+visible = false
 
 [node name="OmegaXD_OmegaXD_0" type="MeshInstance3D" parent="Mesh"]
 mesh = SubResource("ArrayMesh_ywtus")
@@ -57,3 +59,6 @@ skeleton = NodePath("")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.800174, 0)
 shape = SubResource("CapsuleShape3D_wsnrg")
+
+[node name="Skeleton_Warrior" parent="." instance=ExtResource("2_1706r")]
+transform = Transform3D(-0.615, 0, -5.3765007e-08, 0, 0.615, 0, 5.3765007e-08, 0, -0.615, 0, 0, 0)

@@ -1,76 +1,31 @@
-[gd_scene load_steps=5 format=3 uid="uid://dooip7hir4st8"]
+[gd_scene load_steps=2 format=3 uid="uid://dooip7hir4st8"]
 
 [ext_resource type="PackedScene" uid="uid://buekuqohkjb4l" path="res://src/Scenes/Board.tscn" id="1_fca0k"]
-
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_dp8up"]
-sky_top_color = Color(0.372261, 0.486417, 0.604823, 1)
-sky_horizon_color = Color(0.794524, 0.616133, 0.440423, 1)
-sky_curve = 0.235375
-sky_energy_multiplier = 0.97
-sky_cover_modulate = Color(0.412152, 0.412152, 0.412152, 1)
-ground_bottom_color = Color(0.0846849, 0.101652, 0.260186, 1)
-ground_horizon_color = Color(0.795593, 0.622106, 0.361303, 1)
-ground_curve = 0.113137
-ground_energy_multiplier = 0.45
-
-[sub_resource type="Sky" id="Sky_bt154"]
-sky_material = SubResource("ProceduralSkyMaterial_dp8up")
-radiance_size = 4
-
-[sub_resource type="Environment" id="Environment_83scr"]
-background_mode = 2
-sky = SubResource("Sky_bt154")
-sky_custom_fov = 38.3
-sky_rotation = Vector3(3.26551, -5.325, -6.28319)
-ambient_light_source = 1
-ambient_light_color = Color(0.662452, 0.662452, 0.662452, 1)
-reflected_light_source = 2
-tonemap_exposure = 2.14
-ssr_enabled = true
-ssao_enabled = true
-ssao_radius = 2.79
-ssao_light_affect = 0.07
-ssao_ao_channel_affect = 0.2
-ssil_enabled = true
-ssil_intensity = 3.1
-ssil_sharpness = 1.0
-sdfgi_enabled = true
-sdfgi_use_occlusion = true
-sdfgi_bounce_feedback = 0.1
-sdfgi_cascades = 8
-sdfgi_min_cell_size = 0.41
-sdfgi_energy = 1.09
-glow_levels/1 = 0.54
-glow_normalized = true
-glow_intensity = 2.62
-glow_strength = 1.05
-volumetric_fog_emission_energy = 529.17
-volumetric_fog_gi_inject = 1.4
-volumetric_fog_anisotropy = 0.55
-volumetric_fog_length = 71.2
-volumetric_fog_ambient_inject = 0.2
-adjustment_enabled = true
-adjustment_saturation = 1.05
 
 [node name="Main" type="Node3D"]
 
 [node name="GameManager" parent="." instance=ExtResource("1_fca0k")]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(-0.302544, -0.863402, -0.403739, -0.267763, -0.32954, 0.905376, -0.914751, 0.382022, -0.131487, 0, 0, 0)
-light_color = Color(1, 0.907825, 0.706946, 1)
-light_energy = 0.065
+transform = Transform3D(-0.30254415, -0.8634016, -0.40373847, -0.2677631, -0.32953972, 0.9053765, -0.91475135, 0.38202256, -0.13148679, 0.11469495, -1.1920929e-07, 0.096847534)
+light_color = Color(0.9014527, 0.9410248, 0.7506952, 1)
+light_energy = 0.89
+light_indirect_energy = 6.278
+light_volumetric_fog_energy = 10.402
+light_angular_distance = 25.05
 shadow_enabled = true
-shadow_bias = 5.353
-shadow_normal_bias = 5.434
-shadow_transmittance_bias = 8.131
-shadow_blur = 0.13
+shadow_bias = 5.868
+shadow_normal_bias = 2.96
+shadow_transmittance_bias = 1.203
+shadow_opacity = 0.43
+shadow_blur = 1.676
 directional_shadow_mode = 1
+directional_shadow_fade_start = 0.594
+directional_shadow_max_distance = 109.4
 directional_shadow_pancake_size = 24.5
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(0.965926, -0.166366, 0.198267, 0, 0.766044, 0.642788, -0.258819, -0.620885, 0.739942, 0, 13, 0)
-environment = SubResource("Environment_83scr")
+transform = Transform3D(0.965926, -0.1663656, 0.19826679, 0, 0.76604396, 0.642788, -0.25881895, -0.62088513, 0.73994213, 0, 13, 0)
 h_offset = -5.0
 v_offset = -10.0
 projection = 1
