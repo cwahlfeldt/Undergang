@@ -9,6 +9,7 @@ namespace Game
 		private readonly Node3D _boardContainer = new() { Name = "Board" };
 		private readonly Node3D _unitContainer = new() { Name = "Units" };
 		private readonly PackedScene _tileScene = ResourceLoader.Load<PackedScene>("res://src/Scenes/HexTile.tscn");
+		private readonly PackedScene _waterHexScene = ResourceLoader.Load<PackedScene>("res://assets/models/hex_water.gltf");
 
 		public override void Initialize()
 		{
@@ -27,9 +28,23 @@ namespace Game
 					tileInstance.Node.Position = HexGrid.HexToWorld(entity.Get<Coordinate>());
 					tileInstance.Node.Name = entity.Get<Name>();
 
+					// Replace grass with water for blocked (non-traversable) tiles
 					if (!entity.Has<Traversable>())
 					{
-						tileInstance.Node.GetNode<MeshInstance3D>("Mesh").Visible = false;
+						var meshNode = tileInstance.Node.GetNode<MeshInstance3D>("Mesh");
+						var grassModel = meshNode.GetChild(0);
+
+						// Store the transform from the original grass model
+						var originalTransform = grassModel.Transform;
+
+						// Remove the grass model
+						grassModel.QueueFree();
+						meshNode.RemoveChild(grassModel);
+
+						// Instantiate and add the water model
+						var waterModel = _waterHexScene.Instantiate<Node3D>();
+						waterModel.Transform = originalTransform;
+						meshNode.AddChild(waterModel);
 					}
 				}
 				SetupTileInput(entity);
