@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Game.Components;
 using Godot;
 
@@ -7,106 +9,136 @@ namespace Game
 {
     public class UISystem : System
     {
-        private readonly Stack<Control> _hearts = [];
-        private Control _uiNode;
-        private const int HEART_SIZE = 32;
+        private readonly List<Control> _hearts = [];
+        private Control _uiContainer;
+        private const int HEART_SIZE = 48;
         private const int HEART_SPACING = 8;
-        private Camera3D _camera;
+        private int _currentPlayerHealth = 0;
+        private Entity _player;
 
-        // public override void Initialize()
-        // {
-        //     _uiNode = Entities.GetRootNode().GetNode<Control>("UI/SubViewportContainer/SubViewport/Control");
-        //     _camera = Entities.GetRootNode().GetNode<Camera3D>("Camera");
+        public override void Initialize()
+        {
+            // Find or create UI container
+            var rootNode = Entities.GetRootNode();
 
-        //     var player = Entities.Query<Player>().FirstOrDefault();
-        //     var playerHealth = player.Get<Health>();
+            // Create CanvasLayer for UI
+            var canvasLayer = rootNode.GetNodeOrNull<CanvasLayer>("UI");
+            if (canvasLayer == null)
+            {
+                canvasLayer = new CanvasLayer { Name = "UI" };
+                rootNode.AddChild(canvasLayer);
+            }
 
-        //     for (int i = 0; i < playerHealth; i++)
-        //     {
-        //         AddHeart(i * (HEART_SIZE + HEART_SPACING));
-        //     }
+            // Create container for hearts
+            _uiContainer = canvasLayer.GetNodeOrNull<Control>("HealthContainer");
+            if (_uiContainer == null)
+            {
+                _uiContainer = new Control
+                {
+                    Name = "HealthContainer",
+                    Position = new Vector2(20, 20),
+                    Size = new Vector2(400, 60)
+                };
+                canvasLayer.AddChild(_uiContainer);
+            }
 
-        //     // Connect to input events
-        //     Input.MouseButtonPressed += OnMouseButtonPressed;
-        // }
+            // Get player and initial health
+            _player = Entities.Query<Player>().FirstOrDefault();
+            if (_player != null && _player.Has<Health>())
+            {
+                _currentPlayerHealth = _player.Get<Health>();
+                UpdateHearts(_currentPlayerHealth);
+            }
 
-        // private void OnMouseButtonPressed(MouseButton button)
-        // {
-        //     if (button != MouseButton.Right)
-        //         return;
+            // Subscribe to component changes
+            Events.ComponentChanged += OnComponentChanged;
+        }
 
-        //     var mousePos = GetMousePosition();
-        //     var entity = GetEntityUnderMouse(mousePos);
+        public override async Task Update()
+        {
+            // Check if player health changed (backup check if event doesn't fire)
+            if (_player != null && _player.Has<Health>())
+            {
+                int health = _player.Get<Health>();
+                if (health != _currentPlayerHealth)
+                {
+                    _currentPlayerHealth = health;
+                    UpdateHearts(_currentPlayerHealth);
+                }
+            }
 
-        //     if (entity != null)
-        //     {
-        //         Events.EntitySelected?.Invoke(entity);
-        //     }
-        // }
+            await Task.CompletedTask;
+        }
 
-        // private Vector2 GetMousePosition()
-        // {
-        //     return _uiNode.GetViewport().GetMousePosition();
-        // }
+        private void OnComponentChanged(int entityId, Type componentType, object newValue)
+        {
+            // Check if this is the player's health changing
+            if (_player != null && entityId == _player.Id && componentType == typeof(Health))
+            {
+                if (newValue is Health newHealth)
+                {
+                    _currentPlayerHealth = newHealth.Value;
+                    UpdateHearts(_currentPlayerHealth);
+                }
+            }
+        }
 
-        // private Entity GetEntityUnderMouse(Vector2 mousePos)
-        // {
-        //     var spaceState = _uiNode.GetWorld3D().DirectSpaceState;
-        //     var from = _camera.ProjectRayOrigin(mousePos);
-        //     var to = from + _camera.ProjectRayNormal(mousePos) * 1000;
+        private void UpdateHearts(int healthCount)
+        {
+            // Remove existing hearts
+            foreach (var heart in _hearts)
+            {
+                heart.QueueFree();
+            }
+            _hearts.Clear();
 
-        //     var query = PhysicsRayQueryParameters3D.Create(from, to);
-        //     query.CollideWithAreas = true;
-        //     query.CollideWithBodies = true;
+            // Create new hearts based on current health
+            for (int i = 0; i < healthCount; i++)
+            {
+                AddHeart(i);
+            }
+        }
 
-        //     var result = spaceState.IntersectRay(query);
+        private void AddHeart(int index)
+        {
+            var heartContainer = new Control
+            {
+                Position = new Vector2(index * (HEART_SIZE + HEART_SPACING), 0),
+                Size = new Vector2(HEART_SIZE, HEART_SIZE)
+            };
 
-        //     if (result.Count > 0 && result.ContainsKey("collider"))
-        //     {
-        //         var collider = result["collider"].As<Node3D>();
-        //         if (collider != null)
-        //         {
-        //             var entityId = int.TryParse(collider.Name, out var id) ? id : -1;
-        //             return Entities.Query<Unit>().FirstOrDefault(e => e.Id == entityId);
-        //         }
-        //     }
+            // Create heart shape using ColorRect (simple red square with rotation to look like diamond)
+            var heart = new ColorRect
+            {
+                Color = new Color(0.9f, 0.1f, 0.2f, 1), // Red color
+                Size = new Vector2(HEART_SIZE * 0.7f, HEART_SIZE * 0.7f),
+                Position = new Vector2(HEART_SIZE * 0.15f, HEART_SIZE * 0.15f)
+            };
 
-        //     return null;
-        // }
+            // Add a border/outline effect
+            var border = new ColorRect
+            {
+                Color = new Color(0.4f, 0.05f, 0.1f, 1), // Dark red outline
+                Size = new Vector2(HEART_SIZE * 0.76f, HEART_SIZE * 0.76f),
+                Position = new Vector2(HEART_SIZE * 0.12f, HEART_SIZE * 0.12f)
+            };
 
-        // public void RemoveHeart()
-        // {
-        //     if (_hearts.Count == 0)
-        //         return;
+            heartContainer.AddChild(border);
+            heartContainer.AddChild(heart);
 
-        //     var heart = _hearts.Pop();
-        //     _uiNode.RemoveChild(heart);
-        //     heart.QueueFree();
-        // }
+            _hearts.Add(heartContainer);
+            _uiContainer.AddChild(heartContainer);
+        }
 
-        // public void AddHeart(float offsetLeft = 0f, float offsetRight = 0f, float offsetBottom = 40f, float offsetTop = 0f, int size = HEART_SIZE)
-        // {
-        //     var heart = new ColorRect
-        //     {
-        //         OffsetLeft = offsetLeft,
-        //         OffsetRight = offsetRight,
-        //         OffsetBottom = offsetBottom,
-        //         Color = new Color(1, 0.0862745f, 0.321569f, 1),
-        //         Size = new Vector2(size, size)
-        //     };
-        //     _hearts.Push(heart);
-        //     _uiNode.AddChild(heart);
-        // }
+        public override void Cleanup()
+        {
+            Events.ComponentChanged -= OnComponentChanged;
 
-        // public override void Cleanup()
-        // {
-        //     Input.MouseButtonPressed -= OnMouseButtonPressed;
-
-        //     foreach (var heart in _hearts)
-        //     {
-        //         heart.QueueFree();
-        //     }
-        //     _hearts.Clear();
-        // }
+            foreach (var heart in _hearts)
+            {
+                heart.QueueFree();
+            }
+            _hearts.Clear();
+        }
     }
 }
