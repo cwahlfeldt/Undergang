@@ -168,11 +168,29 @@ namespace Game
             var tileNode = tile.Get<Instance>().Node;
             if (tileNode is Node3D node)
             {
-                var mesh = node.GetNode<MeshInstance3D>("Mesh");
-                if (mesh != null)
+                // Find the "Mesh" node (which may be a container for GLTF instances)
+                var meshContainer = node.GetNode<Node3D>("Mesh");
+                if (meshContainer != null)
                 {
-                    mesh.MaterialOverride = material;
+                    // Recursively apply material to all MeshInstance3D children
+                    // This handles GLTF instances that have nested mesh structures
+                    ApplyMaterialToMeshes(meshContainer, material);
                 }
+            }
+        }
+
+        private void ApplyMaterialToMeshes(Node node, StandardMaterial3D material)
+        {
+            // If this node is a MeshInstance3D with a mesh, apply the material
+            if (node is MeshInstance3D meshInstance && meshInstance.Mesh != null)
+            {
+                meshInstance.MaterialOverride = material;
+            }
+
+            // Recursively process all children
+            foreach (Node child in node.GetChildren())
+            {
+                ApplyMaterialToMeshes(child, material);
             }
         }
 
