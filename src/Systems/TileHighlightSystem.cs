@@ -107,7 +107,7 @@ namespace Game
         {
             foreach (Entity t in _highlightedTiles)
             {
-                SetTileMaterial(t, _defaultMaterial);
+                ClearTileMaterial(t);
             }
             _highlightedTiles.Clear(); // Clear the tracking list
         }
@@ -152,13 +152,13 @@ namespace Game
         {
             if (_selectedTile != null)
             {
-                SetTileMaterial(_selectedTile, _defaultMaterial);
+                ClearTileMaterial(_selectedTile);
                 _selectedTile = null;
             }
 
             foreach (var tile in _highlightedTiles)
             {
-                SetTileMaterial(tile, _defaultMaterial);
+                ClearTileMaterial(tile);
             }
             _highlightedTiles.Clear();
         }
@@ -168,11 +168,60 @@ namespace Game
             var tileNode = tile.Get<Instance>().Node;
             if (tileNode is Node3D node)
             {
-                var mesh = node.GetNode<MeshInstance3D>("Mesh");
-                if (mesh != null)
+                // Find the "Mesh" node (which may be a container for GLTF instances)
+                var meshContainer = node.GetNode<Node3D>("Mesh");
+                if (meshContainer != null)
                 {
-                    mesh.MaterialOverride = material;
+                    // Recursively apply material to all MeshInstance3D children
+                    // This handles GLTF instances that have nested mesh structures
+                    ApplyMaterialToMeshes(meshContainer, material);
                 }
+            }
+        }
+
+        private void ApplyMaterialToMeshes(Node node, StandardMaterial3D material)
+        {
+            // If this node is a MeshInstance3D with a mesh, apply the material
+            if (node is MeshInstance3D meshInstance && meshInstance.Mesh != null)
+            {
+                meshInstance.MaterialOverride = material;
+            }
+
+            // Recursively process all children
+            foreach (Node child in node.GetChildren())
+            {
+                ApplyMaterialToMeshes(child, material);
+            }
+        }
+
+        private void ClearTileMaterial(Entity tile)
+        {
+            var tileNode = tile.Get<Instance>().Node;
+            if (tileNode is Node3D node)
+            {
+                // Find the "Mesh" node (which may be a container for GLTF instances)
+                var meshContainer = node.GetNode<Node3D>("Mesh");
+                if (meshContainer != null)
+                {
+                    // Recursively clear material overrides on all MeshInstance3D children
+                    // This restores the original GLTF materials (textures)
+                    ClearMaterialOverrides(meshContainer);
+                }
+            }
+        }
+
+        private void ClearMaterialOverrides(Node node)
+        {
+            // If this node is a MeshInstance3D, clear its material override
+            if (node is MeshInstance3D meshInstance && meshInstance.Mesh != null)
+            {
+                meshInstance.MaterialOverride = null;
+            }
+
+            // Recursively process all children
+            foreach (Node child in node.GetChildren())
+            {
+                ClearMaterialOverrides(child);
             }
         }
 
