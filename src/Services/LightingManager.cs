@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using GodotEnvironment = Godot.Environment;
 
 namespace Undergang.Services;
 
@@ -28,7 +29,7 @@ public partial class LightingManager : Node3D
     [Export(PropertyHint.Range, "-180,180,1")] public float SunAngleY { get; set; } = -45.0f;
 
     private WorldEnvironment _worldEnvironment;
-    private Godot.Environment _environment;
+    private GodotEnvironment _environment;
     private DirectionalLight3D _directionalLight;
 
     public override void _Ready()
@@ -52,11 +53,11 @@ public partial class LightingManager : Node3D
         }
 
         // Create new Environment
-        _environment = new Godot.Environment();
+        _environment = new GodotEnvironment();
         _worldEnvironment.Environment = _environment;
 
         // Background/Sky setup - using a simple color for now
-        _environment.BackgroundMode = Godot.Environment.BGMode.Sky;
+        _environment.BackgroundMode = GodotEnvironment.BGMode.Sky;
 
         var sky = new Sky();
         var skyMaterial = new ProceduralSkyMaterial();
@@ -73,16 +74,16 @@ public partial class LightingManager : Node3D
         _environment.Sky = sky;
 
         // Ambient lighting - crucial for filling in shadows
-        _environment.AmbientLightSource = Godot.Environment.AmbientSource.Sky;
+        _environment.AmbientLightSource = GodotEnvironment.AmbientSource.Sky;
         _environment.AmbientLightColor = AmbientLightColor;
         _environment.AmbientLightSkyContribution = 0.5f;
         _environment.AmbientLightEnergy = AmbientLightEnergy;
 
         // Reflected light - adds realism
-        _environment.ReflectedLightSource = Godot.Environment.ReflectionSource.Sky;
+        _environment.ReflectedLightSource = GodotEnvironment.ReflectionSource.Sky;
 
         // Tonemap for better color range
-        _environment.TonemapMode = Godot.Environment.ToneMapper.Filmic;
+        _environment.TonemapMode = GodotEnvironment.ToneMapper.Filmic;
         _environment.TonemapExposure = 1.0f;
         _environment.TonemapWhite = 1.0f;
 
@@ -163,7 +164,7 @@ public partial class LightingManager : Node3D
             _environment.GlowIntensity = 0.5f;
             _environment.GlowStrength = 0.8f;
             _environment.GlowBloom = 0.1f;
-            _environment.GlowBlendMode = Godot.Environment.GlowBlendModeEnum.Softlight;
+            _environment.GlowBlendMode = GodotEnvironment.GlowBlendModeEnum.Softlight;
             _environment.GlowHdrThreshold = 1.0f;
             _environment.GlowHdrScale = 2.0f;
             GD.Print("[LightingManager] Glow/Bloom enabled");
