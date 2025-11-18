@@ -1,8 +1,20 @@
-[gd_scene load_steps=2 format=3 uid="uid://dooip7hir4st8"]
+[gd_scene load_steps=3 format=3 uid="uid://dooip7hir4st8"]
 
 [ext_resource type="PackedScene" uid="uid://buekuqohkjb4l" path="res://src/Scenes/Board.tscn" id="1_fca0k"]
+[ext_resource type="Script" path="res://src/Services/LightingManager.cs" id="2_lighting"]
 
 [node name="Main" type="Node3D"]
+
+[node name="LightingManager" type="Node3D" parent="."]
+script = ExtResource("2_lighting")
+EnableSSAO = true
+EnableSSIL = true
+EnableGlow = true
+GlobalLightingIntensity = 1.0
+AmbientLightEnergy = 0.4
+SunEnergy = 1.8
+SunAngleX = 50.0
+SunAngleY = -45.0
 
 [node name="GameManager" parent="." instance=ExtResource("1_fca0k")]
 
