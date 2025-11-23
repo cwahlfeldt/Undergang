@@ -23,10 +23,12 @@ namespace Game
 			_systems.Register<AnimationSystem>();
 			_systems.Register<UISystem>();
 			_systems.Register<TurnSystem>();
+			_systems.Register<CooldownSystem>();
 			_systems.Register<EnemySystem>();
 			_systems.Register<PlayerSystem>();
 			_systems.Register<RangeSystem>();
 			_systems.Register<MovementSystem>();
+			_systems.Register<DashSystem>();
 			_systems.Register<CombatSystem>();
 
 			entityManager.CreateGrid(5);

@@ -15,6 +15,7 @@ namespace Game
         {
             // Subscribe to events that should trigger animations
             Events.MoveCompleted += OnMoveCompleted;
+            Events.DashCompleted += OnDashCompleted;
             Events.UnitDefeated += OnUnitDefeated;
 
             // Set all units to Idle state initially
@@ -149,6 +150,15 @@ namespace Game
             }
         }
 
+        private void OnDashCompleted(Entity unit, Vector3I from, Vector3I to)
+        {
+            // Return to idle after dash completes
+            if (unit.Has<Unit>())
+            {
+                SetAnimationState(unit, AnimationState.Idle);
+            }
+        }
+
         private void OnUnitDefeated(Entity unit)
         {
             // Play death animation when unit is defeated
@@ -161,6 +171,7 @@ namespace Game
         public override void Cleanup()
         {
             Events.MoveCompleted -= OnMoveCompleted;
+            Events.DashCompleted -= OnDashCompleted;
             Events.UnitDefeated -= OnUnitDefeated;
         }
     }
