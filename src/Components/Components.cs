@@ -55,6 +55,21 @@ namespace Game.Components
             (movement.From, movement.To);
     }
 
+    public record struct Dash(Vector3I From, Vector3I To)
+    {
+        public static implicit operator (Vector3I, Vector3I)(Dash dash) =>
+            (dash.From, dash.To);
+    }
+
+    public record struct DashReady;
+
+    public record struct AbilityCooldown(int TurnsRemaining)
+    {
+        public static implicit operator int(AbilityCooldown cooldown) => cooldown.TurnsRemaining;
+    }
+
+    public record struct DashMode;
+
     /// <summary>
     /// Component to track current animation state of a unit
     /// </summary>

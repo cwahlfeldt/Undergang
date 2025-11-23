@@ -11,6 +11,9 @@ namespace Game
     {
         private readonly List<Control> _hearts = [];
         private Control _uiContainer;
+        private Control _abilitiesContainer;
+        private Button _dashButton;
+        private Label _dashCooldownLabel;
         private const int HEART_SIZE = 48;
         private const int HEART_SPACING = 8;
         private int _currentPlayerHealth = 0;
@@ -42,6 +45,21 @@ namespace Game
                 canvasLayer.AddChild(_uiContainer);
             }
 
+            // Create container for abilities
+            _abilitiesContainer = canvasLayer.GetNodeOrNull<Control>("AbilitiesContainer");
+            if (_abilitiesContainer == null)
+            {
+                _abilitiesContainer = new Control
+                {
+                    Name = "AbilitiesContainer",
+                    Position = new Vector2(20, 100),
+                    Size = new Vector2(200, 80)
+                };
+                canvasLayer.AddChild(_abilitiesContainer);
+            }
+
+            CreateDashButton();
+
             // Get player and initial health
             _player = Entities.Query<Player>().FirstOrDefault();
             if (_player != null && _player.Has<Health>())
@@ -52,6 +70,66 @@ namespace Game
 
             // Subscribe to component changes
             Events.ComponentChanged += OnComponentChanged;
+        }
+
+        private void CreateDashButton()
+        {
+            // Create dash button
+            _dashButton = new Button
+            {
+                Name = "DashButton",
+                Text = "DASH",
+                Position = new Vector2(0, 0),
+                Size = new Vector2(120, 40)
+            };
+
+            // Style the button
+            _dashButton.AddThemeColorOverride("font_color", new Color(1, 1, 1));
+            _dashButton.AddThemeColorOverride("font_hover_color", new Color(0.8f, 0.9f, 1));
+            _dashButton.AddThemeColorOverride("font_pressed_color", new Color(0.6f, 0.7f, 0.8f));
+            _dashButton.AddThemeColorOverride("font_disabled_color", new Color(0.5f, 0.5f, 0.5f));
+
+            _dashButton.Pressed += OnDashButtonPressed;
+            _abilitiesContainer.AddChild(_dashButton);
+
+            // Create cooldown label
+            _dashCooldownLabel = new Label
+            {
+                Name = "DashCooldownLabel",
+                Position = new Vector2(0, 45),
+                Size = new Vector2(120, 20),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            _dashCooldownLabel.AddThemeColorOverride("font_color", new Color(1, 0.8f, 0.2f));
+            _abilitiesContainer.AddChild(_dashCooldownLabel);
+        }
+
+        private void OnDashButtonPressed()
+        {
+            var player = Entities.Query<Player>().FirstOrDefault();
+            if (player == null) return;
+
+            // Check if dash is ready
+            if (!player.Has<DashReady>())
+            {
+                GD.Print("Dash is on cooldown!");
+                return;
+            }
+
+            // Toggle dash mode
+            if (player.Has<DashMode>())
+            {
+                player.Remove<DashMode>();
+                GD.Print("Dash mode deactivated");
+            }
+            else
+            {
+                player.Add(new DashMode());
+                GD.Print("Dash mode activated");
+            }
+
+            Events.OnDashModeToggled();
+            UpdateDashButton();
         }
 
         public override async Task Update()
@@ -67,7 +145,47 @@ namespace Game
                 }
             }
 
+            // Update dash button state
+            UpdateDashButton();
+
             await Task.CompletedTask;
+        }
+
+        private void UpdateDashButton()
+        {
+            if (_dashButton == null || _player == null) return;
+
+            // Check if dash is ready
+            bool isDashReady = _player.Has<DashReady>();
+            bool isDashMode = _player.Has<DashMode>();
+
+            // Enable/disable button
+            _dashButton.Disabled = !isDashReady;
+
+            // Update button appearance based on mode
+            if (isDashMode)
+            {
+                _dashButton.Text = "DASH (ACTIVE)";
+                _dashButton.Modulate = new Color(0.5f, 1f, 0.5f); // Green tint
+            }
+            else
+            {
+                _dashButton.Text = "DASH";
+                _dashButton.Modulate = isDashReady ? Colors.White : new Color(0.6f, 0.6f, 0.6f);
+            }
+
+            // Update cooldown label
+            if (_player.Has<AbilityCooldown>())
+            {
+                int cooldown = _player.Get<AbilityCooldown>();
+                _dashCooldownLabel.Text = $"Cooldown: {cooldown}";
+                _dashCooldownLabel.Visible = true;
+            }
+            else
+            {
+                _dashCooldownLabel.Text = "";
+                _dashCooldownLabel.Visible = false;
+            }
         }
 
         private void OnComponentChanged(int entityId, Type componentType, object newValue)
@@ -133,6 +251,17 @@ namespace Game
         public override void Cleanup()
         {
             Events.ComponentChanged -= OnComponentChanged;
+
+            if (_dashButton != null)
+            {
+                _dashButton.Pressed -= OnDashButtonPressed;
+                _dashButton.QueueFree();
+            }
+
+            if (_dashCooldownLabel != null)
+            {
+                _dashCooldownLabel.QueueFree();
+            }
 
             foreach (var heart in _hearts)
             {

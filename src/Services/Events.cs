@@ -9,6 +9,7 @@ namespace Game
     {
         public event Action<Entity> UnitDefeated;
         public event Action<Entity, Vector3I, Vector3I> MoveCompleted;
+        public event Action<Entity, Vector3I, Vector3I> DashCompleted;
         public event Action<Entity> TurnChanged;
         public event Action<Entity> TurnEnd;
         public event Action<Entity> TileSelect;
@@ -22,6 +23,7 @@ namespace Game
         public event Action<Entity> OnUnitActionComplete;
         public event Action<IEnumerable<Entity>> GridReady;
         public event Action<int, Type, object> ComponentChanged;
+        public event Action DashModeToggled;
 
         public static Events Instance { get; private set; }
 
@@ -45,9 +47,19 @@ namespace Game
             MoveCompleted?.Invoke(unit, from, to);
         }
 
+        public void OnDashCompleted(Entity unit, Vector3I from, Vector3I to)
+        {
+            DashCompleted?.Invoke(unit, from, to);
+        }
+
         public void OnUnitDefeated(Entity unit)
         {
             UnitDefeated?.Invoke(unit);
+        }
+
+        public void OnDashModeToggled()
+        {
+            DashModeToggled?.Invoke();
         }
 
         public void OnComponentChanged(int id, Type type, object obj)

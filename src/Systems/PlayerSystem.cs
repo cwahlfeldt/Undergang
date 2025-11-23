@@ -22,15 +22,54 @@ namespace Game
             if (selectedTile == null ||
                 selectedTile.Get<Coordinate>() == player.Get<Coordinate>() ||
                 player.Has<Movement>() ||
+                player.Has<Dash>() ||
                 !player.Has<WaitingForAction>())
                 return;
 
-            player.Add(new Movement(
-                player.Get<Coordinate>(),
-                selectedTile.Get<Coordinate>()
-            ));
+            var destination = selectedTile.Get<Coordinate>();
+            var origin = player.Get<Coordinate>();
 
-            player.Remove<WaitingForAction>();
+            // Check if player is in dash mode
+            if (player.Has<DashMode>())
+            {
+                // Validate dash target
+                if (IsValidDashTarget(origin, destination))
+                {
+                    player.Add(new Dash(origin, destination));
+                    player.Remove<WaitingForAction>();
+                    player.Remove<DashMode>(); // Exit dash mode after initiating dash
+                    GD.Print($"Dash initiated from {origin} to {destination}");
+                }
+                else
+                {
+                    GD.Print($"Invalid dash target: {destination}");
+                }
+            }
+            else
+            {
+                // Normal movement
+                player.Add(new Movement(origin, destination));
+                player.Remove<WaitingForAction>();
+            }
+        }
+
+        /// <summary>
+        /// Check if the target is a valid dash destination (exactly 2 tiles away in a straight hex line)
+        /// </summary>
+        private bool IsValidDashTarget(Vector3I from, Vector3I to)
+        {
+            // Check each of the 6 hex directions
+            foreach (var dir in HexGrid.Directions.Values)
+            {
+                var dashTarget = from + (dir * 2);
+                if (dashTarget == to)
+                {
+                    // Valid dash target - 2 tiles in a straight line
+                    var destinationTile = Entities.GetAt(to);
+                    return destinationTile != null && destinationTile.Has<Traversable>();
+                }
+            }
+            return false;
         }
 
         private async void OnTileSelect(Entity entity)

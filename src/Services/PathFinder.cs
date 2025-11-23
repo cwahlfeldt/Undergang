@@ -14,6 +14,7 @@ namespace Game
         public PathFinder(Entities entities)
         {
             Events.Instance.MoveCompleted += OnMoveCompleted;
+            Events.Instance.DashCompleted += OnDashCompleted;
             Events.Instance.UnitDefeated += OnUnitDefeated;
             Events.Instance.GridReady += OnGridReady;
 
@@ -191,6 +192,12 @@ namespace Game
         * Event listeners
         */
         private void OnMoveCompleted(Entity entity, Vector3I fromCoord, Vector3I toCoord)
+        {
+            UpdateConnectionsForTile(fromCoord);
+            UpdateConnectionsForTile(toCoord);
+        }
+
+        private void OnDashCompleted(Entity entity, Vector3I fromCoord, Vector3I toCoord)
         {
             UpdateConnectionsForTile(fromCoord);
             UpdateConnectionsForTile(toCoord);
