@@ -12,6 +12,9 @@ namespace Game.Components
     public readonly record struct Enemy;
     public readonly record struct Grunt;
     public readonly record struct Sniper;
+    public readonly record struct SniperAxisQ;
+    public readonly record struct SniperAxisR;
+    public readonly record struct SniperAxisS;
     public readonly record struct Attacker;
     public readonly record struct Target;
     public readonly record struct Active;
@@ -23,6 +26,9 @@ namespace Game.Components
     public readonly record struct RangeExplosion;
     public readonly record struct RangeHex;
     public readonly record struct RangeNGon;
+    public readonly record struct RangeAxisQ;  // Shoots along Q axis (East-West)
+    public readonly record struct RangeAxisR;  // Shoots along R axis
+    public readonly record struct RangeAxisS;  // Shoots along S axis
 
 
     public record struct Instance(Node3D Node) { public static implicit operator Node3D(Instance node) => node.Node; }
