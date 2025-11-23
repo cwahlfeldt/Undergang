@@ -23,6 +23,7 @@ namespace Game.Components
     public readonly record struct RangeExplosion;
     public readonly record struct RangeHex;
     public readonly record struct RangeNGon;
+    public readonly record struct KnockedBack;
 
 
     public record struct Instance(Node3D Node) { public static implicit operator Node3D(Instance node) => node.Node; }
@@ -53,6 +54,11 @@ namespace Game.Components
     {
         public static implicit operator (Vector3I, Vector3I)(Movement movement) =>
             (movement.From, movement.To);
+    }
+
+    public record struct Knockback(int Distance)
+    {
+        public static implicit operator int(Knockback knockback) => knockback.Distance;
     }
 
     /// <summary>
