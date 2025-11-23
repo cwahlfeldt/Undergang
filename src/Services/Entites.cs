@@ -165,6 +165,27 @@ namespace Game
                     enemy.Add(new Health(1));
                     break;
 
+                case UnitType.SniperAxisQ:
+                    enemy.Add(new SniperAxisQ());
+                    enemy.Add(new RangeAxisQ());
+                    enemy.Add(new Damage(1));
+                    enemy.Add(new Health(1));
+                    break;
+
+                case UnitType.SniperAxisR:
+                    enemy.Add(new SniperAxisR());
+                    enemy.Add(new RangeAxisR());
+                    enemy.Add(new Damage(1));
+                    enemy.Add(new Health(1));
+                    break;
+
+                case UnitType.SniperAxisS:
+                    enemy.Add(new SniperAxisS());
+                    enemy.Add(new RangeAxisS());
+                    enemy.Add(new Damage(1));
+                    enemy.Add(new Health(1));
+                    break;
+
                 default:
                     // Default to Grunt behavior
                     enemy.Add(new Grunt());

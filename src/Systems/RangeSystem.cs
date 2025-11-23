@@ -79,6 +79,15 @@ namespace Game
             if (unit.Has<RangeNGon>())
                 return GetRangeNGon(fromPosition);
 
+            if (unit.Has<RangeAxisQ>())
+                return GetRangeAxisQ(fromPosition);
+
+            if (unit.Has<RangeAxisR>())
+                return GetRangeAxisR(fromPosition);
+
+            if (unit.Has<RangeAxisS>())
+                return GetRangeAxisS(fromPosition);
+
             // Default to empty if no range type
             return Enumerable.Empty<Vector3I>();
         }
@@ -125,6 +134,75 @@ namespace Game
         {
             // TODO: Implement N-gon range pattern
             return GetRangeCircle(center);
+        }
+
+        /// <summary>
+        /// Shoots along Q axis only (East-West directions)
+        /// In cube coords: varying q, r and s constant
+        /// </summary>
+        public static IEnumerable<Vector3I> GetRangeAxisQ(Vector3I center)
+        {
+            var tiles = new List<Vector3I>();
+
+            // Shoot in +q direction (keeping r and s constant)
+            for (int distance = 2; distance <= 5; distance++)
+            {
+                tiles.Add(new Vector3I(center.X + distance, center.Y, center.Z));
+            }
+
+            // Shoot in -q direction (keeping r and s constant)
+            for (int distance = 2; distance <= 5; distance++)
+            {
+                tiles.Add(new Vector3I(center.X - distance, center.Y, center.Z));
+            }
+
+            return tiles;
+        }
+
+        /// <summary>
+        /// Shoots along R axis only
+        /// In cube coords: varying r, q and s constant
+        /// </summary>
+        public static IEnumerable<Vector3I> GetRangeAxisR(Vector3I center)
+        {
+            var tiles = new List<Vector3I>();
+
+            // Shoot in +r direction (keeping q and s constant)
+            for (int distance = 2; distance <= 5; distance++)
+            {
+                tiles.Add(new Vector3I(center.X, center.Y + distance, center.Z));
+            }
+
+            // Shoot in -r direction (keeping q and s constant)
+            for (int distance = 2; distance <= 5; distance++)
+            {
+                tiles.Add(new Vector3I(center.X, center.Y - distance, center.Z));
+            }
+
+            return tiles;
+        }
+
+        /// <summary>
+        /// Shoots along S axis only
+        /// In cube coords: varying s, q and r constant
+        /// </summary>
+        public static IEnumerable<Vector3I> GetRangeAxisS(Vector3I center)
+        {
+            var tiles = new List<Vector3I>();
+
+            // Shoot in +s direction (keeping q and r constant)
+            for (int distance = 2; distance <= 5; distance++)
+            {
+                tiles.Add(new Vector3I(center.X, center.Y, center.Z + distance));
+            }
+
+            // Shoot in -s direction (keeping q and r constant)
+            for (int distance = 2; distance <= 5; distance++)
+            {
+                tiles.Add(new Vector3I(center.X, center.Y, center.Z - distance));
+            }
+
+            return tiles;
         }
 
         public override void Cleanup()
