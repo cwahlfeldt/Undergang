@@ -15,7 +15,7 @@ namespace Game
 
 			var entityManager = _systems.GetEntityManager();
 
-			_systems.RegisterConcurrent<ComponentDebugSystem>();
+			// _systems.RegisterConcurrent<ComponentDebugSystem>();
 			_systems.RegisterConcurrent<DebugSystem>();
 			_systems.RegisterConcurrent<TileHighlightSystem>();
 

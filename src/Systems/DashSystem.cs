@@ -39,11 +39,11 @@ namespace Game
             }
 
             // Perform quick dash animation - direct movement, no pathfinding
-            var startPos = HexGrid.HexToWorld(from);
             var endPos = HexGrid.HexToWorld(to);
 
             // Fast dash: 0.25s vs normal movement 0.5s+
-            await Tweener.MoveTo(dasher.Get<Instance>().Node, endPos, 0.25f);
+            var node = dasher.Get<Instance>().Node;
+            await Tweener.Instance.MoveThrough(node, [endPos], 0.25f);
 
             // Update position
             dasher.Update(new Coordinate(to));

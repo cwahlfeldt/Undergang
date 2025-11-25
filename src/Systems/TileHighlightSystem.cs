@@ -256,11 +256,16 @@ namespace Game
 
             var playerCoord = player.Get<Coordinate>();
 
-            // Highlight all 6 tiles at distance 2 (dash range)
-            foreach (var dir in HexGrid.Directions.Values)
+            // Highlight all tiles within 2-tile radius (dash range)
+            var dashRangeTiles = HexGrid.GetHexesInRange(playerCoord, 2);
+
+            foreach (var coord in dashRangeTiles)
             {
-                var dashTarget = playerCoord + (dir * 2);
-                var tile = Entities.GetAt(dashTarget);
+                // Skip the player's current position
+                if (coord == playerCoord)
+                    continue;
+
+                var tile = Entities.GetAt(coord);
 
                 if (tile != null && tile.Has<Traversable>())
                 {

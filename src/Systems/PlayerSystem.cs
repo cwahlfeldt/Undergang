@@ -54,22 +54,20 @@ namespace Game
         }
 
         /// <summary>
-        /// Check if the target is a valid dash destination (exactly 2 tiles away in a straight hex line)
+        /// Check if the target is a valid dash destination (within 2-tile radius)
         /// </summary>
         private bool IsValidDashTarget(Vector3I from, Vector3I to)
         {
-            // Check each of the 6 hex directions
-            foreach (var dir in HexGrid.Directions.Values)
-            {
-                var dashTarget = from + (dir * 2);
-                if (dashTarget == to)
-                {
-                    // Valid dash target - 2 tiles in a straight line
-                    var destinationTile = Entities.GetAt(to);
-                    return destinationTile != null && destinationTile.Has<Traversable>();
-                }
-            }
-            return false;
+            // Get the distance between origin and destination
+            var distance = HexGrid.GetDistance(from, to);
+
+            // Must be within 2 tiles but not the current tile
+            if (distance < 1 || distance > 2)
+                return false;
+
+            // Destination must be traversable
+            var destinationTile = Entities.GetAt(to);
+            return destinationTile != null && destinationTile.Has<Traversable>();
         }
 
         private async void OnTileSelect(Entity entity)
