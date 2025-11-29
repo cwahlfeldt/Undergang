@@ -2,268 +2,913 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+
 ## Project Overview
 
-Undergang is a turn-based tactical game built with Godot 4.5 and C#. The game features hex-based grid movement, entity-component-system (ECS) architecture, and tactical combat between players and enemies.
+Undergang is a turn-based tactical game built with Godot 4.5 and C#. The game features hex-based grid movement, node-based component architecture, and tactical combat between players and enemies.
 
-## Build and Development Commands
+**CRITICAL: This codebase is designed for 100% code-first development. You (Claude) can create, modify, and refactor everything without needing the Godot editor.**
 
-### Building the Project
-```bash
-dotnet build
+---
+
+## Architecture Philosophy
+
+### Core Principle: Everything is Code
+
+This project uses a **Godot-native, LLM-friendly architecture** where:
+- Components are Nodes (not data structs)
+- Signals replace string-based events
+- Units are CharacterBody3D with component children
+- Systems are Nodes that process logic
+- Everything auto-wires and self-registers
+
+### Why This Architecture?
+
+1. **LLM-Friendly**: You can read, write, and modify all code
+2. **No Editor Required**: Everything builds programmatically
+3. **Type-Safe**: Compile-time checks, no runtime strings
+4. **Inspector-Visible**: State visible in Godot inspector for debugging
+5. **Git-Friendly**: No binary .tscn files with merge conflicts
+
+---
+
+## File Structure
+
 ```
-The project uses .NET 8.0 and builds to `.godot/mono/temp/bin/Debug/Undergang.dll`.
-
-### Running the Game
-Open the project in Godot 4.5 and run from the editor, or use Godot's export functionality.
-
-## Architecture
-
-### Entity-Component-System (ECS)
-The game uses a custom ECS architecture:
-
-- **Entities**: Simple containers with unique IDs that hold components (`src/Lib/Entity.cs`)
-- **Components**: Data structures defined as readonly record structs (`src/Components/Components.cs`)
-- **Systems**: Game logic processors that operate on entities with specific components (`src/Systems/`)
-
-### Core Systems
-Systems are managed by the `Systems` class (`src/Services/Systems.cs`) and can be:
-- **Sequential**: Execute one after another in turn-based updates
-- **Concurrent**: Execute simultaneously for performance
-
-Key systems include:
-- `TurnSystem`: Manages turn order and progression
-- `PlayerSystem`: Handles player input and actions
-- `EnemySystem`: AI behavior for enemy units
-- `MovementSystem`: Handles unit movement on the hex grid
-- `CombatSystem`: Manages combat resolution
-- `RenderSystem`: Visual representation of game state
-
-### Hex Grid System
-The game uses a hex-based coordinate system (`src/Lib/HexGrid.cs`) with:
-- Cube coordinates (Vector3I) for hex positions
-- Range calculations for movement and attack
-- Pathfinding integration
-
-### Services
-- **Events**: Global event system for decoupled communication (`src/Services/Events.cs`)
-- **Entities**: Entity management and queries (`src/Services/Entites.cs`)
-- **PathFinder**: A* pathfinding on the hex grid (`src/Services/PathFinder.cs`)
-- **Materials**: Material management for visual effects (`src/Services/Materials.cs`)
-- **Tweener**: Animation and interpolation system (`src/Services/Tweener.cs`)
-
-### Game Flow
-1. `GameManager` initializes the systems and creates the initial game state
-2. Events trigger system updates through the turn-based cycle
-3. Systems process entities and update game state
-4. Visual systems render the current state to the screen
-
-## Key Patterns
-
-### Component Design
-Components are implemented as readonly record structs with implicit operators:
-```csharp
-public record struct Health(int Value) { public static implicit operator int(Health health) => health.Value; }
+src/
+├── Main.cs                     # Entry point
+├── Core/
+│   ├── GameWorld.cs           # Root node, owns all state
+│   ├── UnitManager.cs         # Unit queries and management
+│   ├── TurnManager.cs         # Turn order and game flow
+│   └── UnitFactory.cs         # Unit creation
+├── Components/
+│   ├── IComponent.cs          # Marker interface
+│   ├── HealthComponent.cs     # One file per component
+│   ├── PositionComponent.cs
+│   ├── DamageComponent.cs
+│   └── ...
+├── Units/
+│   ├── Unit.cs                # Base unit class
+│   ├── Player.cs              # Player unit
+│   └── Enemy.cs               # Enemy unit
+├── Systems/
+│   ├── ISystem.cs             # System interface
+│   ├── CombatSystem.cs        # One file per system
+│   ├── MovementSystem.cs
+│   ├── RangeSystem.cs
+│   ├── AISystem.cs
+│   └── ...
+└── Services/
+    ├── HexGrid.cs             # Hex coordinate math
+    ├── PathFinder.cs          # A* pathfinding
+    └── ...
 ```
 
-### Entity Queries
-The `Entities` service provides LINQ-style queries:
+---
+
+## Code Conventions (CRITICAL - Always Follow)
+
+### Naming Conventions
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Components | `[Name]Component` | `HealthComponent` |
+| Systems | `[Name]System` | `CombatSystem` |
+| Units | `[Type]` | `Player`, `Boss` |
+| Signals | `[Action][Subject]` | `UnitMoved`, `HealthChanged` |
+| Methods | `[Verb][Noun]` | `GetPlayer()`, `MoveUnit()` |
+| Events | Past tense | `Died`, `Damaged`, `TurnEnded` |
+
+### File Naming
+
+- One concept per file
+- File name matches class name
+- Place in correct directory (Components/, Systems/, Units/)
+
+### Code Structure
+
+**Components** must follow this pattern:
 ```csharp
-var enemies = entities.Query<Unit, Enemy>();
-var player = entities.Query<Player>().FirstOrDefault();
-```
+using Godot;
 
-### System Dependencies
-Systems receive dependencies through constructor injection managed by `SystemDependencies`.
+namespace Undergang.Components;
 
-### Event-Driven Architecture
-Systems communicate through the global `Events` service rather than direct coupling.
-
-## Scene Structure
-- **Main.tscn**: Entry point scene
-- **Board.tscn**: Game board visualization
-- **Player.tscn**: Player unit representation
-- **Enemy.tscn**: Enemy unit representation
-- **HexTile.tscn**: Individual hex tile visualization
-
-## Configuration
-- `Config.cs`: Game configuration constants
-- `project.godot`: Godot project settings
-- `Undergang.csproj`: .NET project configuration with Godot.NET.Sdk
-
-## Development Notes
-
-### Adding New Systems
-1. Create a class inheriting from `System` in `src/Systems/`
-2. Register it in `GameManager._Ready()` using `_systems.Register<T>()` or `_systems.RegisterConcurrent<T>()`
-3. Implement required methods: `Initialize()`, `Update()`, `Process()`, `Cleanup()`
-
-### Adding New Components
-1. Define in `src/Components/Components.cs` as readonly record structs
-2. Add implicit operators for convenience
-3. Use marker components (empty structs) for entity tagging
-
-### Entity Management
-- Use `Entities.Query<T>()` methods for component-based entity selection
-- Entity creation helpers are available in `Entities` service
-- Always clean up entities when removing them from the game
-
-## Combat System (Hoplite-Style)
-
-The game implements **Hoplite-style tactical combat** where positioning and movement timing are critical.
-
-### Core Combat Mechanics
-
-#### Attack Triggers
-1. **Enemy Reactive Attacks**: Enemies attack when the player moves INTO their threat range
-   - Happens during player's turn, triggered by player movement
-   - Enemy does NOT move when attacking reactively
-   - Only triggers when entering a NEW enemy's range (not when already adjacent)
-
-2. **Player Attacks**: Player attacks when moving WITHIN an enemy's range
-   - Player must be ALREADY adjacent to an enemy before moving
-   - Moving to another tile still adjacent to the same enemy triggers attack
-   - Does NOT trigger when first entering enemy range
-
-3. **Enemy Turn Behavior**: On enemy's own turn, enemies NEVER attack
-   - If player is in range: Enemy passes turn (waits)
-   - If player is NOT in range: Enemy moves toward player
-
-### Combat Flow Implementation
-
-**Key Files:**
-- `src/Systems/CombatSystem.cs` - Combat resolution and damage application
-- `src/Systems/MovementSystem.cs` - Combat trigger logic during movement
-- `src/Systems/EnemySystem.cs` - Enemy AI and turn behavior
-- `src/Systems/RangeSystem.cs` - Attack range calculation and threat marking
-
-**Combat Resolution Steps:**
-1. Check if combat should trigger (based on movement and position)
-2. Play attack animation (lunge forward and back)
-3. Apply damage to defender
-4. Check if defender is defeated
-5. Remove defeated units from game
-6. Update pathfinding and range systems
-
-### Animation System
-
-The game features a comprehensive animation system designed for Mixamo-rigged characters:
-
-**Files:**
-- `src/Systems/AnimationSystem.cs` - State-based animation controller
-- `src/Components/Components.cs` - Animation components (`CurrentAnimation`, `AnimationPlayer`)
-- `src/Lib/Enums/AnimationState.cs` - Animation states enum
-- `ANIMATIONS.md` - Complete animation integration guide
-
-**Animation States:**
-- `Idle` - Default resting state
-- `Move` - Walking/running animation
-- `Attack` - Attack animation
-- `Hurt` - Taking damage animation
-- `Die` - Death animation
-- `Spawn`, `Victory`, `Defeat` - Optional states
-
-**Automatic Triggers:**
-- Movement → Sets `Move` state during movement, returns to `Idle` when complete
-- Combat → Plays `Attack` (attacker) and `Hurt` (defender) animations
-- Defeat → Triggers `Die` animation
-
-**Animation Naming Convention:**
-Animations must be named: `{UnitType}_{AnimationState}`
-- Examples: `Player_Idle`, `Grunt_Attack`, `Sniper_Move`
-
-**Fallback Behavior:**
-- System works without animations (graceful degradation)
-- Uses Tweener for basic movement interpolation as fallback
-- No errors if AnimationPlayer or animations are missing
-
-**Integration:**
-The system is ready for Mixamo characters. See `ANIMATIONS.md` for complete workflow:
-1. Download character + animations from Mixamo
-2. Import FBX files into Godot
-3. Rename animations following convention
-4. Replace unit scene visuals with Mixamo character
-5. Zero code changes required!
-
-### Range System Architecture
-
-The game supports multiple attack range patterns through components:
-
-**Range Type Components:**
-- `RangeCircle` - Adjacent tiles (6 hex neighbors) - Currently implemented
-- `RangeDiagonal` - Diagonal tiles
-- `RangeHex` - Hex ring at distance
-- `RangeExplosion` - Area of effect
-- `RangeNGon` - N-sided polygon pattern
-
-**Dynamic Range Calculation:**
-```csharp
-// Automatically determines range based on unit's range type component
-var attackTiles = RangeSystem.GetAttackRangeTiles(unit, position);
-```
-
-**Threat Zone Marking:**
-- Each frame, `RangeSystem.UpdateRanges()` marks all tiles within each unit's attack range
-- Tiles get `AttackRangeTile(unitId)` component indicating which unit threatens them
-- Used by MovementSystem to detect when player enters enemy threat zones
-
-### Combat Components
-
-**Essential Combat Components:**
-- `Health(int)` - Current hit points
-- `Damage(int)` - Attack damage value
-- `AttackRange(int)` - Attack range distance
-- `AttackRangeTile(int unitId)` - Marks threatened tiles with attacker's ID
-- `RangeCircle/Diagonal/etc` - Marker for attack pattern type
-- `Enemy` - Marker for enemy units
-- `Player` - Marker for player unit
-
-### Adding New Enemy Types with Different Ranges
-
-Example: Creating a ranged sniper enemy with diagonal range:
-
-1. **Implement the range pattern** in `RangeSystem`:
-```csharp
-public static IEnumerable<Vector3I> GetRangeDiagonal(Vector3I center)
+/// <summary>
+/// [What this component does]
+/// </summary>
+public partial class [Name]Component : Node, IComponent
 {
-    var tiles = new List<Vector3I>();
-    for (int i = 1; i <= 5; i++)  // 5 tiles range
+    // Signals (if needed)
+    [Signal]
+    public delegate void [Event]EventHandler([params]);
+
+    // Properties
+    [Export]  // Use [Export] for inspector-visible values
+    public [Type] [Property] { get; set; } = [default];
+
+    // Lifecycle
+    public override void _Ready()
     {
-        tiles.Add(center + new Vector3I(i, -i, 0));   // NE
-        tiles.Add(center + new Vector3I(-i, i, 0));   // SW
-        tiles.Add(center + new Vector3I(i, 0, -i));   // SE
-        tiles.Add(center + new Vector3I(-i, 0, i));   // NW
+        // Initialize
     }
-    return tiles;
+
+    // Public API
+    public void [Method]([params])
+    {
+        // Logic
+        EmitSignal(SignalName.[Event], [args]);
+    }
+
+    // Cleanup
+    public override void _ExitTree()
+    {
+        // Unsubscribe signals
+    }
 }
 ```
 
-2. **Create the enemy** with the range component:
+**Systems** must follow this pattern:
 ```csharp
-var sniper = Entities.CreateEnemy(UnitType.Sniper);
-sniper.Add(new RangeDiagonal());  // Automatically uses diagonal range
-sniper.Add(new Damage(2));
-sniper.Add(new Health(3));
+using Godot;
+using Undergang.Core;
+
+namespace Undergang.Systems;
+
+/// <summary>
+/// [What this system does]
+/// </summary>
+[AutoRegister]  // IMPORTANT: Use this for auto-registration
+public partial class [Name]System : Node, ISystem
+{
+    // Signals
+    [Signal]
+    public delegate void [Event]EventHandler([params]);
+
+    // Dependencies
+    private GameWorld _world;
+    private UnitManager _units;
+    private TurnManager _turns;
+
+    public override void _Ready()
+    {
+        _world = GetParent<GameWorld>();
+        _units = _world.Units;
+        _turns = _world.Turns;
+
+        Initialize();
+    }
+
+    public void Initialize()
+    {
+        // Subscribe to events
+    }
+
+    public void ProcessTurn()
+    {
+        // Per-turn logic (if needed)
+    }
+
+    public void Cleanup()
+    {
+        // Unsubscribe events
+    }
+
+    public override void _ExitTree()
+    {
+        Cleanup();
+    }
+}
 ```
 
-3. **Combat system automatically handles it** - No additional code needed!
+**Units** must follow this pattern:
+```csharp
+using Godot;
+using Undergang.Components;
 
-### Important Combat Rules
+namespace Undergang.Units;
 
-1. **Single Attack Per Movement**: Only one enemy attacks per player movement, even if multiple enemies threaten the destination
-2. **Player Counter-Attack**: Player only counter-attacks the enemy they were ALREADY fighting
-3. **Death During Movement**: If player dies from enemy attack, movement stops immediately
-4. **Turn Completion**: Combat completes before `UnitActionComplete` event fires
-5. **Visual Feedback**: Attack animations complete before damage is applied
+/// <summary>
+/// [What this unit type does]
+/// </summary>
+public partial class [Name] : Unit
+{
+    // Type-specific components (cached)
+    public [Component] [Name] { get; private set; }
 
-### Debugging Combat
+    public override void _Ready()
+    {
+        Type = UnitType.[Name];
+        base._Ready(); // Builds base components
 
-Debug output in `CombatSystem.ResolveCombat()` shows:
-- Attacker/Defender IDs and types (Enemy/Player)
-- Damage dealt and health changes
-- Combat trigger location
+        // Add type-specific components
+        [Name] = new [Component]();
+        AddChild([Name]);
 
-Enable verbose logging to trace:
-- When enemies pass turn vs move
-- When player enters/exits threat zones
-- When attacks trigger and why
+        Configure();
+    }
+
+    private void Configure()
+    {
+        // Set stats
+        Health.MaxHealth = [value];
+        Damage.Value = [value];
+    }
+
+    protected override void OnDied()
+    {
+        // Custom death behavior
+        base.OnDied();
+    }
+}
+```
+
+---
+
+## How to Work with This Codebase
+
+### When Asked to Add a Component
+
+1. **Create file**: `src/Components/[Name]Component.cs`
+2. **Follow component template** (see above)
+3. **Add XML documentation**
+4. **Use [Export] for tweakable values**
+5. **Define signals for important events**
+6. **Emit signals when state changes**
+
+### When Asked to Add a System
+
+1. **Create file**: `src/Systems/[Name]System.cs`
+2. **Follow system template** (see above)
+3. **Add `[AutoRegister]` attribute** (it will auto-wire)
+4. **Get dependencies from GameWorld** in `_Ready()`
+5. **Subscribe to events in `Initialize()`**
+6. **Unsubscribe in `Cleanup()`**
+
+### When Asked to Add a Unit Type
+
+1. **Create file**: `src/Units/[Name].cs`
+2. **Extend Unit, Player, or Enemy**
+3. **Add type-specific components in `_Ready()`**
+4. **Configure stats in `Configure()`**
+5. **Override methods for custom behavior**
+
+### When Asked to Modify Existing Code
+
+1. **Read the file first** (use Read tool)
+2. **Understand existing patterns**
+3. **Follow the same style**
+4. **Update XML documentation**
+5. **Maintain signal connections/disconnections**
+
+---
+
+## Important Patterns
+
+### Signal Usage (CRITICAL)
+
+**Define signals:**
+```csharp
+[Signal]
+public delegate void DiedEventHandler();
+
+[Signal]
+public delegate void DamagedEventHandler(int amount, int remaining);
+```
+
+**Emit signals:**
+```csharp
+EmitSignal(SignalName.Died);
+EmitSignal(SignalName.Damaged, amount, remaining);
+```
+
+**Subscribe to signals (C# style - preferred):**
+```csharp
+health.Died += OnDied;
+health.Damaged += (amount, remaining) => GD.Print($"Took {amount} damage");
+```
+
+**Unsubscribe (CRITICAL - always do this in _ExitTree):**
+```csharp
+public override void _ExitTree()
+{
+    health.Died -= OnDied;
+}
+```
+
+### Component Queries
+
+```csharp
+// Get single component
+var health = unit.GetComponent<HealthComponent>();
+
+// Check if has component
+if (unit.HasComponent<ShieldComponent>())
+
+// Try get component
+if (unit.TryGetComponent<DamageComponent>(out var damage))
+```
+
+### Unit Queries
+
+```csharp
+// From UnitManager
+var player = _units.GetPlayer();
+var enemies = _units.GetEnemies();
+var allUnits = _units.GetAllUnits();
+var unitAt = _units.GetUnitAt(hexPos);
+var inRange = _units.GetUnitsInRange(center, range);
+```
+
+### Auto-Registration
+
+Systems with `[AutoRegister]` attribute automatically register themselves:
+
+```csharp
+[AutoRegister]
+public partial class NewSystem : Node, ISystem
+{
+    // System auto-wires itself on game start
+}
+```
+
+---
+
+## Combat System (Hoplite-Style)
+
+The game implements **Hoplite-style tactical combat** where positioning is critical.
+
+### Attack Triggers
+
+1. **Enemy Reactive Attacks**: Enemies attack when player enters their threat range
+   - Only triggers when entering a NEW enemy's range
+   - Enemy doesn't move, just attacks
+
+2. **Player Attacks**: Player attacks when moving WITHIN an enemy's range
+   - Must be adjacent to enemy before moving
+   - Moving to another adjacent tile triggers attack
+
+3. **Enemy Turn**: Enemies never attack on their own turn
+   - If player in range: Enemy waits
+   - If player NOT in range: Enemy moves toward player
+
+### Key Files
+
+- `src/Systems/CombatSystem.cs` - Combat resolution
+- `src/Systems/MovementSystem.cs` - Combat triggers during movement
+- `src/Systems/RangeSystem.cs` - Threat zone calculation
+- `src/Systems/AISystem.cs` - Enemy AI behavior
+
+---
+
+## Reference Documentation
+
+When you need more details, check these files:
+
+- **MIGRATION_GUIDE.md** - Architecture explanation and migration steps
+- **CODE_FIRST_MIGRATION.md** - How to do everything in code (no editor)
+- **LLM_FRIENDLY_ARCHITECTURE.md** - Architecture patterns optimized for AI
+- **AI_PROMPT_GUIDE.md** - Templates and examples for common tasks
+
+---
+
+## Common Tasks
+
+### Adding a New Component
+
+See **AI_PROMPT_GUIDE.md** → Component Prompts
+
+**Example**: Adding StaminaComponent
+```csharp
+using Godot;
+
+namespace Undergang.Components;
+
+public partial class StaminaComponent : Node, IComponent
+{
+    [Signal]
+    public delegate void StaminaDepletedEventHandler();
+
+    [Export]
+    public int MaxStamina { get; set; } = 100;
+
+    [Export]
+    public int RegenPerTurn { get; set; } = 10;
+
+    private int _current;
+
+    public int Current
+    {
+        get => _current;
+        private set
+        {
+            _current = Mathf.Clamp(value, 0, MaxStamina);
+            if (_current == 0)
+                EmitSignal(SignalName.StaminaDepleted);
+        }
+    }
+
+    public override void _Ready()
+    {
+        _current = MaxStamina;
+    }
+
+    public bool UseStamina(int amount)
+    {
+        if (Current < amount) return false;
+        Current -= amount;
+        return true;
+    }
+
+    public void Regenerate()
+    {
+        Current += RegenPerTurn;
+    }
+}
+```
+
+### Adding a New System
+
+See **AI_PROMPT_GUIDE.md** → System Prompts
+
+**Example**: Adding PoisonSystem
+```csharp
+using Godot;
+using Undergang.Core;
+using Undergang.Components;
+
+namespace Undergang.Systems;
+
+[AutoRegister]
+public partial class PoisonSystem : Node, ISystem
+{
+    [Signal]
+    public delegate void PoisonAppliedEventHandler(Unit unit, int damage);
+
+    private GameWorld _world;
+    private UnitManager _units;
+
+    public override void _Ready()
+    {
+        _world = GetParent<GameWorld>();
+        _units = _world.Units;
+
+        Initialize();
+    }
+
+    public void Initialize()
+    {
+        _world.Turns.TurnEnded += OnTurnEnded;
+    }
+
+    private void OnTurnEnded(Unit unit)
+    {
+        // Apply poison to all units with PoisonComponent
+        foreach (var u in _units.GetAllUnits())
+        {
+            if (u.TryGetComponent<PoisonComponent>(out var poison) && u.Health.IsAlive)
+            {
+                u.Health.TakeDamage(poison.DamagePerTurn);
+                EmitSignal(SignalName.PoisonApplied, u, poison.DamagePerTurn);
+
+                poison.DecrementDuration();
+            }
+        }
+    }
+
+    public void Cleanup()
+    {
+        _world.Turns.TurnEnded -= OnTurnEnded;
+    }
+
+    public override void _ExitTree()
+    {
+        Cleanup();
+    }
+}
+```
+
+### Modifying Existing Systems
+
+1. **Read the file first**
+2. **Find the method to modify**
+3. **Understand the existing logic**
+4. **Add your changes following the same patterns**
+5. **Update documentation**
+
+**Example**: Adding shield check to CombatSystem
+```csharp
+public void ExecuteCombat(Unit attacker, Unit defender)
+{
+    var damage = attacker.Damage.Value;
+
+    // NEW: Check for shield
+    if (defender.TryGetComponent<ShieldComponent>(out var shield) && shield.IsActive)
+    {
+        damage = shield.AbsorbDamage(damage);
+    }
+
+    // Apply remaining damage
+    if (damage > 0)
+    {
+        defender.Health.TakeDamage(damage);
+    }
+}
+```
+
+---
+
+## Testing
+
+### Manual Testing Checklist
+
+When you add a feature, verify:
+- [ ] Code compiles (dotnet build)
+- [ ] No runtime errors in console
+- [ ] Feature works as expected
+- [ ] Signals fire correctly
+- [ ] No memory leaks (signals unsubscribed)
+- [ ] Inspector shows correct values
+
+### Adding Debug Output
+
+```csharp
+public void SomeMethod()
+{
+    GD.Print($"[{GetType().Name}] Doing something with {variable}");
+}
+```
+
+---
+
+## Build Commands
+
+```bash
+# Build project
+dotnet build
+
+# Run in Godot
+# Open project in Godot 4.5, press F5
+```
+
+---
+
+## Key Godot Concepts
+
+### Node Lifecycle
+
+```csharp
+_EnterTree()   // Added to scene tree
+_Ready()       // All children ready
+_Process()     // Every frame
+_ExitTree()    // Removed from scene tree
+```
+
+**CRITICAL**: Always unsubscribe signals in `_ExitTree()` to prevent memory leaks!
+
+### Deferred Calls
+
+When you need to call something after current frame:
+```csharp
+CallDeferred(nameof(MethodName));
+```
+
+### Tweens (Animation)
+
+```csharp
+var tween = CreateTween();
+tween.TweenProperty(node, "position", targetPos, duration);
+tween.TweenCallback(Callable.From(OnComplete));
+```
+
+---
+
+## Common Pitfalls
+
+### ❌ DON'T: Forget to unsubscribe signals
+```csharp
+public override void _Ready()
+{
+    someComponent.SomeEvent += Handler;
+    // MISSING: Unsubscribe in _ExitTree()
+}
+// Result: Memory leak!
+```
+
+### ✅ DO: Always unsubscribe
+```csharp
+public override void _Ready()
+{
+    someComponent.SomeEvent += Handler;
+}
+
+public override void _ExitTree()
+{
+    someComponent.SomeEvent -= Handler;
+}
+```
+
+---
+
+### ❌ DON'T: Access nodes before _Ready()
+```csharp
+public partial class MyClass : Node
+{
+    private SomeNode _node = GetNode<SomeNode>("SomePath"); // NULL!
+}
+```
+
+### ✅ DO: Access in _Ready() or later
+```csharp
+public partial class MyClass : Node
+{
+    private SomeNode _node;
+
+    public override void _Ready()
+    {
+        _node = GetNode<SomeNode>("SomePath"); // Works!
+    }
+}
+```
+
+---
+
+### ❌ DON'T: Use string-based events
+```csharp
+Events.Emit("UnitMoved", unit); // Type-unsafe, error-prone
+```
+
+### ✅ DO: Use signals
+```csharp
+EmitSignal(SignalName.UnitMoved, unit); // Type-safe!
+```
+
+---
+
+### ❌ DON'T: Hardcode values
+```csharp
+if (distance < 5) // What is 5?
+```
+
+### ✅ DO: Use named constants
+```csharp
+public const int ATTACK_RANGE = 5;
+if (distance < ATTACK_RANGE) // Clear intent
+```
+
+---
+
+## When You Get Stuck
+
+1. **Read existing code** - Find similar feature and copy pattern
+2. **Check reference docs** - MIGRATION_GUIDE.md, CODE_FIRST_MIGRATION.md
+3. **Add debug output** - GD.Print() everywhere
+4. **Ask for clarification** - If requirements unclear, ask user
+
+---
+
+## Your Workflow (Claude)
+
+### When User Asks You To Create Something:
+
+1. ✅ **Check if you need to read files first**
+   - Use Read tool on relevant files
+   - Understand existing patterns
+
+2. ✅ **Follow the conventions**
+   - Use correct naming (ComponentName + "Component")
+   - Place in correct directory
+   - Follow the templates above
+
+3. ✅ **Write complete, working code**
+   - Include all necessary using statements
+   - Add XML documentation
+   - Handle edge cases
+   - Subscribe AND unsubscribe signals
+
+4. ✅ **Use Write or Edit tool**
+   - Create new files with Write
+   - Modify existing files with Edit
+
+5. ✅ **Explain what you did**
+   - Tell user what files you created/modified
+   - Explain how it works
+   - Note any caveats or next steps
+
+### When User Asks You To Debug:
+
+1. ✅ **Read the relevant files**
+2. ✅ **Identify the issue**
+3. ✅ **Add debug output if needed**
+4. ✅ **Fix the issue**
+5. ✅ **Explain what was wrong and how you fixed it**
+
+### When User Asks You To Refactor:
+
+1. ✅ **Read all affected files**
+2. ✅ **Plan the refactoring**
+3. ✅ **Make changes incrementally**
+4. ✅ **Ensure nothing breaks**
+5. ✅ **Update documentation**
+
+---
+
+## Quick Reference
+
+### Component Lifecycle
+```csharp
+_Ready()       → Initialize, subscribe signals
+_Process()     → Per-frame logic (avoid if possible)
+_ExitTree()    → Cleanup, unsubscribe signals
+```
+
+### Signal Pattern
+```csharp
+[Signal] delegate void EventHandler(params);  // Define
+EmitSignal(SignalName.Event, args);           // Emit
+obj.Event += Handler;                          // Subscribe
+obj.Event -= Handler;                          // Unsubscribe
+```
+
+### System Dependencies
+```csharp
+_world = GetParent<GameWorld>();
+_units = _world.Units;
+_turns = _world.Turns;
+_otherSystem = _world.GetSystem<OtherSystem>();
+```
+
+### Unit Creation
+```csharp
+var unit = new UnitType();
+_units.AddUnit(unit); // Adds to scene, calls _Ready()
+```
+
+---
+
+## Remember
+
+- **Everything is code** - You can create/modify anything
+- **Follow conventions** - Naming, structure, patterns
+- **Use templates** - Copy existing patterns
+- **Read first** - Understand before modifying
+- **Test mentally** - Think through the code flow
+- **Document** - Add XML comments
+- **Clean up** - Unsubscribe signals
+
+You're building a **type-safe, inspectable, LLM-friendly** codebase. Every piece of code should be clear, predictable, and follow the established patterns.
+
+---
+
+## Example: Complete Feature Implementation
+
+**User Request**: "Add a shield system where shields absorb damage before health"
+
+**Your Process**:
+
+1. **Create ShieldComponent.cs**:
+```csharp
+using Godot;
+
+namespace Undergang.Components;
+
+/// <summary>
+/// Shield that absorbs damage before health is affected.
+/// Regenerates over time.
+/// </summary>
+public partial class ShieldComponent : Node, IComponent
+{
+    [Signal]
+    public delegate void ShieldBrokenEventHandler();
+
+    [Export]
+    public int MaxShield { get; set; } = 10;
+
+    [Export]
+    public int RegenPerTurn { get; set; } = 1;
+
+    private int _current;
+
+    public int Current
+    {
+        get => _current;
+        set
+        {
+            var old = _current;
+            _current = Mathf.Clamp(value, 0, MaxShield);
+
+            if (_current == 0 && old > 0)
+                EmitSignal(SignalName.ShieldBroken);
+        }
+    }
+
+    public bool IsActive => Current > 0;
+
+    public override void _Ready()
+    {
+        _current = MaxShield;
+    }
+
+    public int AbsorbDamage(int damage)
+    {
+        var absorbed = Mathf.Min(damage, Current);
+        Current -= absorbed;
+        return damage - absorbed;
+    }
+
+    public void Regenerate()
+    {
+        Current += RegenPerTurn;
+    }
+}
+```
+
+2. **Modify CombatSystem.cs**:
+```csharp
+public void ExecuteCombat(Unit attacker, Unit defender)
+{
+    var damage = attacker.Damage.Value;
+
+    // Check for shield
+    if (defender.TryGetComponent<ShieldComponent>(out var shield) && shield.IsActive)
+    {
+        damage = shield.AbsorbDamage(damage);
+        GD.Print($"Shield absorbed damage, {damage} overflow");
+    }
+
+    // Apply remaining damage
+    if (damage > 0)
+    {
+        defender.Health.TakeDamage(damage);
+    }
+
+    EmitSignal(SignalName.CombatEnded, attacker, defender, !defender.Health.IsAlive);
+}
+```
+
+3. **Create ShieldRegenSystem.cs**:
+```csharp
+using Godot;
+using Undergang.Core;
+using Undergang.Components;
+
+namespace Undergang.Systems;
+
+/// <summary>
+/// Regenerates shields for all units each turn.
+/// </summary>
+[AutoRegister]
+public partial class ShieldRegenSystem : Node, ISystem
+{
+    private GameWorld _world;
+    private UnitManager _units;
+
+    public override void _Ready()
+    {
+        _world = GetParent<GameWorld>();
+        _units = _world.Units;
+
+        Initialize();
+    }
+
+    public void Initialize()
+    {
+        _world.Turns.TurnEnded += OnTurnEnded;
+    }
+
+    private void OnTurnEnded(Unit unit)
+    {
+        foreach (var u in _units.GetAllUnits())
+        {
+            if (u.TryGetComponent<ShieldComponent>(out var shield) && u.Health.IsAlive)
+            {
+                shield.Regenerate();
+            }
+        }
+    }
+
+    public void Cleanup()
+    {
+        _world.Turns.TurnEnded -= OnTurnEnded;
+    }
+
+    public override void _ExitTree()
+    {
+        Cleanup();
+    }
+}
+```
+
+4. **Respond to user**:
+   - "I've added the shield system with three components:"
+   - "1. ShieldComponent - tracks shield value and absorbs damage"
+   - "2. Modified CombatSystem - checks shields before applying damage"
+   - "3. ShieldRegenSystem - regenerates shields each turn"
+   - "To use, add ShieldComponent to any unit in their _Ready() method"
+
+---
+
+That's it! Follow these patterns and you'll create clean, maintainable, LLM-friendly code.
+
+Happy coding! 🚀
