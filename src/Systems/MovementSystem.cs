@@ -56,7 +56,7 @@ namespace Game
             Entity enemyInRange = null;
             if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
-                enemyInRange = CheckIfPlayerWasInEnemyRange(origin);
+                enemyInRange = CheckIfPlayerWasInEnemyRange(mover, origin);
             }
 
             // Set to Move animation state
@@ -99,7 +99,7 @@ namespace Game
             if (enemyInRange != null && mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
                 // Check if player is still in range of that enemy at destination
-                if (IsInAttackRange(destination, enemyInRange.Get<Coordinate>()))
+                if (IsInAttackRange(mover, destination, enemyInRange.Get<Coordinate>()))
                 {
                     if (_combatSystem.CanAttack(mover, enemyInRange))
                     {
@@ -113,15 +113,22 @@ namespace Game
         }
 
         /// <summary>
+        /// Get attack range tiles for an entity at a given position
+        /// </summary>
+        private IReadOnlyList<Vector3I> GetAttackRangeTiles(Entity entity, Vector3I position)
+        {
+            return RangeSystem.GetAttackRangeTiles(entity, position).ToList();
+        }
+
+        /// <summary>
         /// Check if player is currently in attack range of any enemy
         /// </summary>
-        private Entity CheckIfPlayerWasInEnemyRange(Vector3I playerCoord)
+        private Entity CheckIfPlayerWasInEnemyRange(Entity player, Vector3I playerCoord)
         {
-            var player = Entities.Query<Player>().FirstOrDefault();
             if (player == null) return null;
 
             // Get all tiles within player's attack range (based on player's range type)
-            var attackRangeTiles = RangeSystem.GetAttackRangeTiles(player, playerCoord).ToList();
+            var attackRangeTiles = GetAttackRangeTiles(player, playerCoord);
 
             // Check each tile for enemies
             foreach (var coord in attackRangeTiles)
@@ -142,12 +149,11 @@ namespace Game
         /// <summary>
         /// Check if target coordinate is within attacker's attack range
         /// </summary>
-        private bool IsInAttackRange(Vector3I attackerCoord, Vector3I targetCoord)
+        private bool IsInAttackRange(Entity attacker, Vector3I attackerCoord, Vector3I targetCoord)
         {
-            var player = Entities.Query<Player>().FirstOrDefault();
-            if (player == null) return false;
+            if (attacker == null) return false;
 
-            var tilesInRange = RangeSystem.GetAttackRangeTiles(player, attackerCoord).ToList();
+            var tilesInRange = GetAttackRangeTiles(attacker, attackerCoord);
             return tilesInRange.Contains(targetCoord);
         }
     }
