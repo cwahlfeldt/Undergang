@@ -240,7 +240,7 @@ public static IEnumerable<Vector3I> GetRangeDiagonal(Vector3I center)
 
 2. **Create the enemy** with the range component:
 ```csharp
-var sniper = Entities.CreateEnemy(UnitType.Sniper);
+var sniper = Entities.Factory.CreateEnemy(UnitType.Sniper);
 sniper.Add(new RangeDiagonal());  // Automatically uses diagonal range
 sniper.Add(new Damage(2));
 sniper.Add(new Health(3));

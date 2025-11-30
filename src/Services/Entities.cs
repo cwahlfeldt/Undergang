@@ -12,6 +12,9 @@ namespace Game
         private readonly Dictionary<int, Entity> _entities = [];
         private int _nextId = 0;
         private readonly Node3D _rootNode = rootNode;
+        private EntityFactory _factory;
+
+        public EntityFactory Factory => _factory ??= new EntityFactory(this);
 
         public int GetNextId()
         {
@@ -51,7 +54,7 @@ namespace Game
                 .Where(e =>
                     !e.Has<Unit>() &&
                     e.Has<Traversable>() &&
-                    !HexGrid.GetHexesInRange(Config.PlayerStart, 3).Contains(e.Get<Coordinate>()));
+                    !HexGrid.GetHexesInRange(Config.PlayerStart, Config.PlayerSpawnExclusionRadius).Contains(e.Get<Coordinate>()));
 
             return entitiesAwayFromPlayer
             .ElementAtOrDefault(rand.Next(0, entitiesAwayFromPlayer.Count()));
@@ -70,8 +73,11 @@ namespace Game
             return unit != null;
         }
 
-        public IEnumerable<Entity> GetTilesInRange(Vector3I coord, int range) =>
-            GetTiles();
+        public IEnumerable<Entity> GetTilesInRange(Vector3I coord, int range)
+        {
+            var coordsInRange = HexGrid.GetHexesInRange(coord, range);
+            return Query<Tile>().Where(tile => coordsInRange.Contains(tile.Get<Coordinate>()));
+        }
 
         public IEnumerable<Entity> Query<T1>() =>
             _entities.Values.Where(e =>
@@ -91,93 +97,5 @@ namespace Game
                 e.Has<T2>() &&
                 e.Has<T3>() &&
                 e.Has<T4>());
-
-        public IEnumerable<Entity> CreateGrid(int mapSize = 5, int blockedTilesAmt = 16)
-        {
-            var randBlockedTileIndices = Utils.GenerateRandomIntArray(blockedTilesAmt);
-            return [.. HexGrid.GenerateHexCoordinates(mapSize)
-                .Select((coord, i) =>
-                {
-                    var tile = CreateTile(coord, i);
-
-                    if (!(randBlockedTileIndices.Contains(i) && coord != Config.PlayerStart))
-                        tile.Add(new Traversable());
-
-                    return tile;
-                })];
-        }
-
-        public Entity CreateTile(Vector3I coord, int index = 0)
-        {
-            var tile = AddEntity(new Entity(GetNextId()));
-
-            tile.Add(new Name($"Tile {coord}"));
-            tile.Add(new Tile());
-            tile.Add(new Instance(new Node3D()));
-            tile.Add(new Coordinate(coord));
-            tile.Add(new TileIndex(index));
-
-            return tile;
-        }
-
-        public Entity CreatePlayer()
-        {
-            var player = AddEntity(new Entity(GetNextId()));
-
-            player.Add(new Name("Player"));
-            player.Add(new Player());
-            player.Add(new Unit(UnitType.Player));
-            player.Add(new Instance(new Node3D()));
-            player.Add(new Coordinate(Config.PlayerStart));
-            player.Add(new RangeCircle());
-            player.Add(new Damage(1));
-            player.Add(new Health(3));
-            player.Add(new MoveRange(1));
-            player.Add(new AttackRange(1));
-
-            return player;
-        }
-
-        public Entity CreateEnemy(UnitType unitType)
-        {
-            var enemy = AddEntity(new Entity(GetNextId()));
-
-            enemy.Add(new Name(unitType.ToString()));
-            enemy.Add(new Enemy());
-            enemy.Add(new Unit(unitType));
-            enemy.Add(new Instance(new Node3D()));
-            enemy.Add(new Coordinate(GetRandomTileEntity().Get<Coordinate>()));
-
-            // Configure stats and range based on enemy type
-            switch (unitType)
-            {
-                case UnitType.Grunt:
-                    enemy.Add(new Grunt());
-                    enemy.Add(new RangeCircle());
-                    enemy.Add(new Damage(1));
-                    enemy.Add(new Health(1));
-                    break;
-
-                case UnitType.Sniper:
-                    enemy.Add(new Sniper());
-                    enemy.Add(new RangeDiagonal());
-                    enemy.Add(new Damage(1));
-                    enemy.Add(new Health(1));
-                    break;
-
-                default:
-                    // Default to Grunt behavior
-                    enemy.Add(new Grunt());
-                    enemy.Add(new RangeCircle());
-                    enemy.Add(new Damage(1));
-                    enemy.Add(new Health(1));
-                    break;
-            }
-
-            enemy.Add(new MoveRange(1));
-            enemy.Add(new AttackRange(1));
-
-            return enemy;
-        }
     }
 }
