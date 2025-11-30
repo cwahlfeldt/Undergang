@@ -57,7 +57,6 @@ namespace Game
             mover.Remove<Movement>();
 
             await ExecuteMove(mover, to);
-            Events.UnitActionComplete(mover);
         }
 
         private async Task<bool> ProcessMovementWithCombat(Entity mover, List<Vector3I> path)

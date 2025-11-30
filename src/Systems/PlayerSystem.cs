@@ -14,7 +14,6 @@ namespace Game
         {
             _turnSystem = Systems.Get<TurnSystem>();
             Events.TileSelect += OnTileSelect;
-            Events.OnUnitActionComplete += OnUnitActionComplete;
         }
 
         private async void OnTileSelect(Entity tile)
@@ -32,10 +31,6 @@ namespace Game
 
             // Direct orchestration - clear and traceable
             await _turnSystem.ExecutePlayerAction(player, destination);
-        }
-
-        private void OnUnitActionComplete(Entity _)
-        {
             ClearSelectedTiles();
         }
 
@@ -48,7 +43,6 @@ namespace Game
         public override void Cleanup()
         {
             Events.TileSelect -= OnTileSelect;
-            Events.OnUnitActionComplete -= OnUnitActionComplete;
         }
     }
 }

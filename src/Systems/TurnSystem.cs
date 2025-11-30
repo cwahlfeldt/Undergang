@@ -16,7 +16,6 @@ namespace Game
             _movementSystem = Systems.Get<MovementSystem>();
             _animationSystem = Systems.Get<AnimationSystem>();
 
-            Events.OnUnitActionComplete += OnUnitActionComplete;
             SetupInitialTurnOrder();
         }
 
@@ -122,18 +121,6 @@ namespace Game
             unit.Add(new CurrentTurn());
             unit.Add(new WaitingForAction>();
             Events.OnTurnChanged(unit);  // Notify UI and other systems
-        }
-
-        // Legacy event handler - kept for compatibility but no longer primary flow
-        private void OnUnitActionComplete(Entity entity)
-        {
-            // This event is now primarily fired from CompleteUnitTurn()
-            // Kept for any external systems that may listen
-        }
-
-        public override void Cleanup()
-        {
-            Events.OnUnitActionComplete -= OnUnitActionComplete;
         }
     }
 }
