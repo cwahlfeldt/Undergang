@@ -17,6 +17,35 @@ namespace Game
             _animationSystem = Systems.Get<AnimationSystem>();
         }
 
+        /// <summary>
+        /// Executes a unit's movement from current position to destination
+        /// Handles pathfinding, animation, and combat resolution
+        /// Returns true if unit was defeated during movement
+        /// </summary>
+        public async Task<bool> ExecuteMove(Entity mover, Vector3I destination)
+        {
+            var origin = mover.Get<Coordinate>();
+            var path = PathFinder.FindPath(origin, destination, mover.Get<MoveRange>());
+
+            // Check for combat along the path
+            bool unitDefeated = await ProcessMovementWithCombat(mover, path);
+
+            if (unitDefeated)
+            {
+                return true;  // Unit defeated
+            }
+
+            var fromTile = Entities.GetAt(path.First());
+            var toTile = Entities.GetAt(path.Last());
+
+            // Fire event for UI updates, range recalculation
+            Events.OnMoveCompleted(mover, fromTile.Get<Coordinate>(), toTile.Get<Coordinate>());
+
+            return false;  // Unit survived
+        }
+
+        // Legacy Update() - kept for backward compatibility
+        // New code should use ExecuteMove() directly via TurnSystem orchestration
         public override async Task Update()
         {
             var mover = Entities.Query<Movement, CurrentTurn>().FirstOrDefault();
@@ -25,24 +54,9 @@ namespace Game
                 return;
 
             var (from, to) = mover.Get<Movement>();
-            var path = PathFinder.FindPath(from, to, mover.Get<MoveRange>());
-
-            // Check for combat along the path
-            bool unitDefeated = await ProcessMovementWithCombat(mover, path);
-
-            if (unitDefeated)
-            {
-                // Unit was defeated during movement, don't complete the action
-                mover.Remove<Movement>();
-                return;
-            }
-
-            var fromTile = Entities.GetAt(path.First());
-            var toTile = Entities.GetAt(path.Last());
-
             mover.Remove<Movement>();
 
-            Events.OnMoveCompleted(mover, fromTile.Get<Coordinate>(), toTile.Get<Coordinate>());
+            await ExecuteMove(mover, to);
             Events.UnitActionComplete(mover);
         }
 

@@ -9,62 +9,54 @@ namespace Game
 {
     public class EnemySystem : System
     {
-        private CombatSystem _combatSystem;
+        private TurnSystem _turnSystem;
 
         public override void Initialize()
         {
-            _combatSystem = Systems.Get<CombatSystem>();
+            _turnSystem = Systems.Get<TurnSystem>();
+            Events.TurnChanged += OnTurnChanged;
         }
 
-        public override async Task Update()
+        private async void OnTurnChanged(Entity unit)
         {
-            var enemy = Entities.Query<Enemy, CurrentTurn>().FirstOrDefault();
+            // Only process enemy turns
+            if (!unit.Has<Enemy>())
+                return;
+
             var player = Entities.Query<Player>().FirstOrDefault();
-
-            if (enemy == null || player == null)
+            if (player == null)
                 return;
 
-            // Only act if enemy is waiting for action
-            if (!enemy.Has<WaitingForAction>() || enemy.Has<Movement>())
-                return;
-
-            var enemyCoord = enemy.Get<Coordinate>();
+            var enemyCoord = unit.Get<Coordinate>();
             var playerCoord = player.Get<Coordinate>();
 
-            // In Hoplite-style combat, enemies ONLY attack when player moves into their range
-            // On the enemy's turn, they ONLY move (they don't attack proactively)
-            // This creates the tactical puzzle where the player must avoid enemy threat zones
-
-            // Check if player is within this enemy's attack range (uses enemy's range type)
-            var attackRangeTiles = RangeSystem.GetAttackRangeTiles(enemy, enemyCoord).ToList();
+            // Check if player is in attack range
+            var attackRangeTiles = RangeSystem.GetAttackRangeTiles(unit, enemyCoord);
             bool playerInRange = attackRangeTiles.Contains(playerCoord);
 
             if (playerInRange)
             {
-                // Player is already in range - enemy just waits/passes turn
-                // (Enemy already attacked when player moved into range on player's turn)
-                GD.Print($"Enemy {enemy.Id} passes turn (player already in range)");
-                enemy.Remove<WaitingForAction>();
-                Events.UnitActionComplete(enemy);
+                // Pass turn - player already in range
+                _turnSystem.ExecuteEnemyPass(unit);
             }
             else
             {
-                // Different behavior for different enemy types
-                if (enemy.Has<Sniper>())
+                // Determine movement target based on enemy type
+                Vector3I targetPosition;
+
+                if (unit.Has<Sniper>())
                 {
-                    // Sniper AI: Move to position that is in range 2-5 of player AND closest to range 3
-                    var targetPosition = FindSniperTargetPosition(enemyCoord, playerCoord, enemy.Get<MoveRange>());
-                    GD.Print($"Sniper {enemy.Id} moves towards ideal position");
-                    enemy.Add(new Movement(enemyCoord, targetPosition));
+                    targetPosition = FindSniperTargetPosition(enemyCoord, playerCoord, unit.Get<MoveRange>());
+                    GD.Print($"Sniper {unit.Id} moves towards ideal position");
                 }
                 else
                 {
-                    // Grunt AI: Simple move directly towards player
-                    GD.Print($"Enemy {enemy.Id} moves towards player");
-                    enemy.Add(new Movement(enemyCoord, playerCoord));
+                    targetPosition = playerCoord;  // Grunt: move toward player
+                    GD.Print($"Enemy {unit.Id} moves towards player");
                 }
 
-                enemy.Remove<WaitingForAction>();
+                // Execute movement
+                await _turnSystem.ExecuteEnemyAction(unit, targetPosition);
             }
         }
 
@@ -140,6 +132,11 @@ namespace Game
 
             // Last resort: stay in place
             return sniperCoord;
+        }
+
+        public override void Cleanup()
+        {
+            Events.TurnChanged -= OnTurnChanged;
         }
     }
 }
