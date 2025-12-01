@@ -86,20 +86,30 @@ namespace Game
             // Animation system will set back to Idle via MoveCompleted event
 
             // ENEMY ATTACKS: Check if PLAYER moved into enemy attack range (not if enemy moved)
-            // Only trigger if player moved into a NEW threat zone (wasn't already there)
-            if (destinationTile != null && destinationTile.Has<AttackRangeTile>() && mover.Has<Player>() && mover.Has<CurrentTurn>())
+            // Multiple enemies can attack if their threat zones overlap
+            if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
-                int attackerId = destinationTile.Get<AttackRangeTile>();
-                Entity attacker = Entities.GetEntity(attackerId);
+                // Get all enemies whose attack range includes the destination
+                var attackingEnemies = Entities.Query<Enemy, Coordinate>()
+                    .Where(enemy =>
+                    {
+                        // Skip the enemy we were already fighting (they don't get a reactive attack)
+                        if (enemyInRange != null && enemy.Id == enemyInRange.Id)
+                            return false;
 
-                // Only attack if this is a DIFFERENT enemy than the one we were already fighting
-                // OR if we weren't fighting anyone before
-                if (attacker != null && attacker.Has<Enemy>() && (enemyInRange == null || enemyInRange.Id != attacker.Id))
+                        // Check if destination is in this enemy's attack range
+                        var enemyAttackRange = RangeSystem.GetAttackRangeTiles(enemy, enemy.Get<Coordinate>());
+                        return enemyAttackRange.Contains(destination);
+                    })
+                    .ToList();
+
+                // Process attacks from all threatening enemies
+                foreach (var attacker in attackingEnemies)
                 {
-                    GD.Print($"Player moved into enemy {attackerId} attack range at {destination}!");
+                    GD.Print($"Player moved into enemy {attacker.Id} attack range at {destination}!");
                     await _combatSystem.ResolveCombat(attacker, mover);
 
-                    // Check if player was defeated
+                    // Check if player was defeated after each attack
                     if (!mover.Has<Health>() || mover.Get<Health>() <= 0)
                     {
                         GD.Print("Player defeated by enemy attack!");
@@ -108,16 +118,28 @@ namespace Game
                 }
             }
 
-            // PLAYER ATTACKS: Player attacks if they were already in range and moved to another tile in range
-            if (enemyInRange != null && mover.Has<Player>() && mover.Has<CurrentTurn>())
+            // PLAYER ATTACKS: Player attacks ALL enemies in range when moving within range
+            if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
-                // Check if player is still in range of that enemy at destination
-                if (IsInAttackRange(mover, destination, enemyInRange.Get<Coordinate>()))
-                {
-                    if (_combatSystem.CanAttack(mover, enemyInRange))
+                // Get all enemies in attack range at destination
+                var enemiesInRange = Entities.Query<Enemy, Coordinate>()
+                    .Where(enemy =>
                     {
-                        GD.Print($"Player attacks enemy {enemyInRange.Id} while moving within attack range!");
-                        await _combatSystem.ResolveCombat(mover, enemyInRange);
+                        // Check if enemy is in player's attack range from destination
+                        return IsInAttackRange(mover, destination, enemy.Get<Coordinate>()) &&
+                               _combatSystem.CanAttack(mover, enemy);
+                    })
+                    .ToList();
+
+                // Attack all enemies in range
+                foreach (var enemy in enemiesInRange)
+                {
+                    // Only attack if we were already fighting this enemy (moved within their range)
+                    // OR if we just entered their range (covered by reactive attack above)
+                    if (enemyInRange != null && enemy.Id == enemyInRange.Id)
+                    {
+                        GD.Print($"Player attacks enemy {enemy.Id} while moving within attack range!");
+                        await _combatSystem.ResolveCombat(mover, enemy);
                     }
                 }
             }

@@ -376,10 +376,10 @@ sniper.Add(new Health(3));
 
 ### Important Combat Rules
 
-1. **Single Attack Per Movement**: Only one enemy attacks per player movement, even if multiple enemies threaten the destination
-2. **Player Counter-Attack**: Player only counter-attacks the enemy they were ALREADY fighting
-3. **Death During Movement**: If player dies from enemy attack, movement stops immediately
-4. **Turn Completion**: Combat completes before `UnitActionComplete` event fires
+1. **Multiple Enemy Attacks**: ALL enemies attack when the player moves into their overlapping threat zones (changed from single attack)
+2. **Player Counter-Attack**: Player counter-attacks the enemy they were ALREADY fighting when moving within that enemy's range
+3. **Death During Combat**: If player dies from any attack during movement, movement stops immediately and no further attacks occur
+4. **Turn Completion**: All combat resolves before `UnitActionComplete` event fires
 5. **Visual Feedback**: Attack animations complete before damage is applied
 
 ### Debugging Combat
