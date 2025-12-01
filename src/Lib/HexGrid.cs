@@ -56,11 +56,13 @@ public static class HexGrid
 
     public static IEnumerable<Vector3I> GetHexesInRange(Vector3I center, int range)
     {
-        var tiles = new List<Vector3I>();
-        // For range N, check all tiles up to N distance away
+        // Use yield return for deferred execution - no list allocation
         for (int q = -range; q <= range; q++)
         {
-            for (int r = Mathf.Max(-range, -q - range); r <= Mathf.Min(range, -q + range); r++)
+            int r1 = Mathf.Max(-range, -q - range);
+            int r2 = Mathf.Min(range, -q + range);
+
+            for (int r = r1; r <= r2; r++)
             {
                 var s = -q - r;
                 var coord = new Vector3I(center.X + q, center.Y + r, center.Z + s);
@@ -69,11 +71,10 @@ public static class HexGrid
                 // Check if this coordinate is within range and is a valid tile
                 if (distance <= range)
                 {
-                    tiles.Add(coord);
+                    yield return coord;
                 }
             }
         }
-        return tiles;
     }
 
     private static Vector3I RoundToHex(Vector3 fractional)

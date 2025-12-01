@@ -146,8 +146,8 @@ namespace Game
             // Multiple enemies can attack if their threat zones overlap
             if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
-                // Get all enemies whose attack range includes the destination
-                var attackingEnemies = Entities.Query<Enemy, Coordinate>()
+                // Process attacks from all threatening enemies
+                foreach (var attacker in Entities.Query<Enemy, Coordinate>()
                     .Where(enemy =>
                     {
                         // Skip the enemy we were already fighting (they don't get a reactive attack)
@@ -157,11 +157,7 @@ namespace Game
                         // Check if destination is in this enemy's attack range
                         var enemyAttackRange = RangeSystem.GetAttackRangeTiles(enemy, enemy.Get<Coordinate>());
                         return enemyAttackRange.Contains(destination);
-                    })
-                    .ToList();
-
-                // Process attacks from all threatening enemies
-                foreach (var attacker in attackingEnemies)
+                    }))
                 {
                     await _combatSystem.ResolveCombat(attacker, mover);
 
@@ -204,9 +200,9 @@ namespace Game
         /// <summary>
         /// Get attack range tiles for an entity at a given position
         /// </summary>
-        private IReadOnlyList<Vector3I> GetAttackRangeTiles(Entity entity, Vector3I position)
+        private IEnumerable<Vector3I> GetAttackRangeTiles(Entity entity, Vector3I position)
         {
-            return RangeSystem.GetAttackRangeTiles(entity, position).ToList();
+            return RangeSystem.GetAttackRangeTiles(entity, position);
         }
 
         /// <summary>

@@ -142,7 +142,7 @@ namespace Game
         /// </summary>
         private void ClearDashRangeTiles()
         {
-            foreach (var tile in Entities.Query<DashRangeTile>().ToList())
+            foreach (var tile in Entities.Query<DashRangeTile>())
             {
                 tile.Remove<DashRangeTile>();
             }

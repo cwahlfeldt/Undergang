@@ -18,6 +18,14 @@ namespace Game
         private Entity _selectedTile;
         private DashSystem _dashSystem;
 
+        // Debouncing for hover pathfinding
+        private Entity _lastHoveredTile;
+        private ulong _lastHoverTime;
+        private const ulong HOVER_DEBOUNCE_MS = 50;
+
+        // Mesh caching for material application
+        private readonly Dictionary<int, List<MeshInstance3D>> _tileMeshCache = new();
+
         public override void Initialize()
         {
             _highlightMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileHighlight.tres");
@@ -44,6 +52,17 @@ namespace Game
 
         private void OnTileHover(Entity tile)
         {
+            ulong currentTime = Time.GetTicksMsec();
+
+            // Debounce: only recalculate if enough time has passed or it's a different tile
+            if (tile == _lastHoveredTile && (currentTime - _lastHoverTime) < HOVER_DEBOUNCE_MS)
+            {
+                return;
+            }
+
+            _lastHoveredTile = tile;
+            _lastHoverTime = currentTime;
+
             if (
                 tile != _selectedTile &&
                 !_highlightedTiles.Contains(tile))
@@ -100,10 +119,9 @@ namespace Game
 
                 // Get the unit's attack range tiles
                 var unitCoord = unit.Get<Coordinate>();
-                var attackRangeTiles = RangeSystem.GetAttackRangeTiles(unit, unitCoord).ToList();
 
                 // Highlight all tiles in attack range
-                foreach (var coord in attackRangeTiles)
+                foreach (var coord in RangeSystem.GetAttackRangeTiles(unit, unitCoord))
                 {
                     var tile = Entities.GetAt(coord);
                     if (tile != null && tile.Has<Traversable>())
@@ -236,62 +254,48 @@ namespace Game
         private void SetTileMaterial(Entity tile, StandardMaterial3D material)
         {
             var tileNode = tile.Get<Instance>().Node;
-            if (tileNode is Node3D node)
+            if (tileNode is not Node3D node) return;
+
+            // Check cache first
+            if (!_tileMeshCache.TryGetValue(tile.Id, out var meshes))
             {
-                // Find the "Mesh" node (which may be a container for GLTF instances)
+                meshes = new List<MeshInstance3D>();
                 var meshContainer = node.GetNode<Node3D>("Mesh");
                 if (meshContainer != null)
                 {
-                    // Recursively apply material to all MeshInstance3D children
-                    // This handles GLTF instances that have nested mesh structures
-                    ApplyMaterialToMeshes(meshContainer, material);
+                    CollectMeshes(meshContainer, meshes);
                 }
+                _tileMeshCache[tile.Id] = meshes;
+            }
+
+            // Apply material to cached meshes
+            foreach (var mesh in meshes)
+            {
+                mesh.MaterialOverride = material;
             }
         }
 
-        private void ApplyMaterialToMeshes(Node node, StandardMaterial3D material)
+        private void CollectMeshes(Node node, List<MeshInstance3D> meshes)
         {
-            // If this node is a MeshInstance3D with a mesh, apply the material
             if (node is MeshInstance3D meshInstance && meshInstance.Mesh != null)
             {
-                meshInstance.MaterialOverride = material;
+                meshes.Add(meshInstance);
             }
 
-            // Recursively process all children
             foreach (Node child in node.GetChildren())
             {
-                ApplyMaterialToMeshes(child, material);
+                CollectMeshes(child, meshes);
             }
         }
 
         private void ClearTileMaterial(Entity tile)
         {
-            var tileNode = tile.Get<Instance>().Node;
-            if (tileNode is Node3D node)
+            if (_tileMeshCache.TryGetValue(tile.Id, out var meshes))
             {
-                // Find the "Mesh" node (which may be a container for GLTF instances)
-                var meshContainer = node.GetNode<Node3D>("Mesh");
-                if (meshContainer != null)
+                foreach (var mesh in meshes)
                 {
-                    // Recursively clear material overrides on all MeshInstance3D children
-                    // This restores the original GLTF materials (textures)
-                    ClearMaterialOverrides(meshContainer);
+                    mesh.MaterialOverride = null;
                 }
-            }
-        }
-
-        private void ClearMaterialOverrides(Node node)
-        {
-            // If this node is a MeshInstance3D, clear its material override
-            if (node is MeshInstance3D meshInstance && meshInstance.Mesh != null)
-            {
-                meshInstance.MaterialOverride = null;
-            }
-
-            // Recursively process all children
-            foreach (Node child in node.GetChildren())
-            {
-                ClearMaterialOverrides(child);
             }
         }
 
