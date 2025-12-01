@@ -17,6 +17,35 @@ namespace Game
             _animationSystem = Systems.Get<AnimationSystem>();
         }
 
+        /// <summary>
+        /// Executes a unit's movement from current position to destination
+        /// Handles pathfinding, animation, and combat resolution
+        /// Returns true if unit was defeated during movement
+        /// </summary>
+        public async Task<bool> ExecuteMove(Entity mover, Vector3I destination)
+        {
+            var origin = mover.Get<Coordinate>();
+            var path = PathFinder.FindPath(origin, destination, mover.Get<MoveRange>());
+
+            // Check for combat along the path
+            bool unitDefeated = await ProcessMovementWithCombat(mover, path);
+
+            if (unitDefeated)
+            {
+                return true;  // Unit defeated
+            }
+
+            var fromTile = Entities.GetAt(path.First());
+            var toTile = Entities.GetAt(path.Last());
+
+            // Fire event for UI updates, range recalculation
+            Events.OnMoveCompleted(mover, fromTile.Get<Coordinate>(), toTile.Get<Coordinate>());
+
+            return false;  // Unit survived
+        }
+
+        // Legacy Update() - kept for backward compatibility
+        // New code should use ExecuteMove() directly via TurnSystem orchestration
         public override async Task Update()
         {
             var mover = Entities.Query<Movement, CurrentTurn>().FirstOrDefault();
@@ -25,25 +54,9 @@ namespace Game
                 return;
 
             var (from, to) = mover.Get<Movement>();
-            var path = PathFinder.FindPath(from, to, mover.Get<MoveRange>());
-
-            // Check for combat along the path
-            bool unitDefeated = await ProcessMovementWithCombat(mover, path);
-
-            if (unitDefeated)
-            {
-                // Unit was defeated during movement, don't complete the action
-                mover.Remove<Movement>();
-                return;
-            }
-
-            var fromTile = Entities.GetAt(path.First());
-            var toTile = Entities.GetAt(path.Last());
-
             mover.Remove<Movement>();
 
-            Events.OnMoveCompleted(mover, fromTile.Get<Coordinate>(), toTile.Get<Coordinate>());
-            Events.UnitActionComplete(mover);
+            await ExecuteMove(mover, to);
         }
 
         private async Task<bool> ProcessMovementWithCombat(Entity mover, List<Vector3I> path)
@@ -56,7 +69,7 @@ namespace Game
             Entity enemyInRange = null;
             if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
-                enemyInRange = CheckIfPlayerWasInEnemyRange(origin);
+                enemyInRange = CheckIfPlayerWasInEnemyRange(mover, origin);
             }
 
             // Set to Move animation state
@@ -99,7 +112,7 @@ namespace Game
             if (enemyInRange != null && mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
                 // Check if player is still in range of that enemy at destination
-                if (IsInAttackRange(destination, enemyInRange.Get<Coordinate>()))
+                if (IsInAttackRange(mover, destination, enemyInRange.Get<Coordinate>()))
                 {
                     if (_combatSystem.CanAttack(mover, enemyInRange))
                     {
@@ -113,15 +126,22 @@ namespace Game
         }
 
         /// <summary>
+        /// Get attack range tiles for an entity at a given position
+        /// </summary>
+        private IReadOnlyList<Vector3I> GetAttackRangeTiles(Entity entity, Vector3I position)
+        {
+            return RangeSystem.GetAttackRangeTiles(entity, position).ToList();
+        }
+
+        /// <summary>
         /// Check if player is currently in attack range of any enemy
         /// </summary>
-        private Entity CheckIfPlayerWasInEnemyRange(Vector3I playerCoord)
+        private Entity CheckIfPlayerWasInEnemyRange(Entity player, Vector3I playerCoord)
         {
-            var player = Entities.Query<Player>().FirstOrDefault();
             if (player == null) return null;
 
             // Get all tiles within player's attack range (based on player's range type)
-            var attackRangeTiles = RangeSystem.GetAttackRangeTiles(player, playerCoord).ToList();
+            var attackRangeTiles = GetAttackRangeTiles(player, playerCoord);
 
             // Check each tile for enemies
             foreach (var coord in attackRangeTiles)
@@ -142,12 +162,11 @@ namespace Game
         /// <summary>
         /// Check if target coordinate is within attacker's attack range
         /// </summary>
-        private bool IsInAttackRange(Vector3I attackerCoord, Vector3I targetCoord)
+        private bool IsInAttackRange(Entity attacker, Vector3I attackerCoord, Vector3I targetCoord)
         {
-            var player = Entities.Query<Player>().FirstOrDefault();
-            if (player == null) return false;
+            if (attacker == null) return false;
 
-            var tilesInRange = RangeSystem.GetAttackRangeTiles(player, attackerCoord).ToList();
+            var tilesInRange = GetAttackRangeTiles(attacker, attackerCoord);
             return tilesInRange.Contains(targetCoord);
         }
     }

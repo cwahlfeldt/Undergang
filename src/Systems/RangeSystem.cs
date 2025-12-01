@@ -100,7 +100,7 @@ namespace Game
 
             foreach (var direction in HexGrid.Directions.Values)
             {
-                for (int distance = 2; distance <= 5; distance++)
+                for (int distance = Config.DiagonalRangeMin; distance <= Config.DiagonalRangeMax; distance++)
                 {
                     tiles.Add(center + direction * distance);
                 }
@@ -111,20 +111,57 @@ namespace Game
 
         public static IEnumerable<Vector3I> GetRangeHex(Vector3I center)
         {
-            // TODO: Implement hex range pattern (ring at distance 2?)
-            return GetRangeCircle(center);
+            // Hex ring at specific distance (tiles exactly N steps away)
+            var tiles = new List<Vector3I>();
+            var allTilesInRange = HexGrid.GetHexesInRange(center, Config.HexRingDistance);
+
+            foreach (var coord in allTilesInRange)
+            {
+                if (HexGrid.GetDistance(center, coord) == Config.HexRingDistance)
+                {
+                    tiles.Add(coord);
+                }
+            }
+
+            return tiles;
         }
 
         public static IEnumerable<Vector3I> GetRangeExplosion(Vector3I center)
         {
-            // TODO: Implement explosion range (all tiles within radius 2?)
-            return GetRangeCircle(center);
+            // All tiles within radius (area of effect)
+            var tiles = new List<Vector3I>();
+            var allTilesInRange = HexGrid.GetHexesInRange(center, Config.ExplosionRadius);
+
+            foreach (var coord in allTilesInRange)
+            {
+                // Exclude the center tile itself
+                if (coord != center)
+                {
+                    tiles.Add(coord);
+                }
+            }
+
+            return tiles;
         }
 
         public static IEnumerable<Vector3I> GetRangeNGon(Vector3I center)
         {
-            // TODO: Implement N-gon range pattern
-            return GetRangeCircle(center);
+            // N-gon pattern: alternating directions forming polygon shape
+            // Uses every other hex direction to create triangular pattern
+            var tiles = new List<Vector3I>();
+            var directions = HexGrid.Directions.Values.ToList();
+
+            // Take every other direction (creates triangular/hexagonal pattern)
+            for (int i = 0; i < directions.Count; i += 2)
+            {
+                var direction = directions[i];
+                for (int distance = 1; distance <= 3; distance++)
+                {
+                    tiles.Add(center + direction * distance);
+                }
+            }
+
+            return tiles;
         }
 
         public override void Cleanup()

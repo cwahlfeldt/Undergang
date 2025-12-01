@@ -29,7 +29,7 @@ namespace Game
 
             _sequential[typeof(Events)] = Events.Instance;
             _sequential[typeof(Entities)] = entities;
-            _sequential[typeof(Materials)] = entities;
+            _sequential[typeof(Materials)] = materials;
             _sequential[typeof(PathFinder)] = pathfinder;
             _sequential[typeof(Tweener)] = Tweener.Instance;
         }

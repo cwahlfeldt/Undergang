@@ -8,49 +8,29 @@ namespace Game
 {
     public class PlayerSystem : System
     {
+        private TurnSystem _turnSystem;
+
         public override void Initialize()
         {
+            _turnSystem = Systems.Get<TurnSystem>();
             Events.TileSelect += OnTileSelect;
-            Events.OnUnitActionComplete += OnUnitActionComplete;
         }
 
-        public override async Task Update()
+        private async void OnTileSelect(Entity tile)
         {
-            var selectedTile = Entities.Query<SelectedTile>().FirstOrDefault();
             var player = Entities.Query<Player>().FirstOrDefault();
 
-            if (selectedTile == null ||
-                selectedTile.Get<Coordinate>() == player.Get<Coordinate>() ||
-                player.Has<Movement>() ||
-                !player.Has<WaitingForAction>())
+            // Validation
+            if (player == null || !player.Has<WaitingForAction>())
                 return;
 
-            player.Add(new Movement(
-                player.Get<Coordinate>(),
-                selectedTile.Get<Coordinate>()
-            ));
-
-            player.Remove<WaitingForAction>();
-        }
-
-        private async void OnTileSelect(Entity entity)
-        {
-            ClearSelectedTiles();
-            var player = Entities.Query<Player>().FirstOrDefault();
-
-            if (!player.Has<WaitingForAction>() || player.Has<Movement>())
+            if (!tile.Has<Tile>() || !tile.Has<Traversable>())
                 return;
 
-            if (entity.Has<Tile>() && !entity.Has<SelectedTile>() && entity.Has<Traversable>())
-            {
-                ClearSelectedTiles();
-                entity.Add(new SelectedTile());
-                await Systems.Update();
-            }
-        }
+            var destination = tile.Get<Coordinate>();
 
-        private void OnUnitActionComplete(Entity _)
-        {
+            // Direct orchestration - clear and traceable
+            await _turnSystem.ExecutePlayerAction(player, destination);
             ClearSelectedTiles();
         }
 
@@ -63,7 +43,6 @@ namespace Game
         public override void Cleanup()
         {
             Events.TileSelect -= OnTileSelect;
-            Events.OnUnitActionComplete -= OnUnitActionComplete;
         }
     }
 }

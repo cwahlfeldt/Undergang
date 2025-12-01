@@ -162,7 +162,7 @@ namespace Game
                     var neighborCoord = current + dir;
                     if (_tiles.TryGetValue(neighborCoord, out var neighborTile) &&
                         !visited.Contains(neighborCoord) &&
-                        !neighborTile.Has<Traversable>() &&
+                        neighborTile.Has<Traversable>() &&
                         !_entities.IsTileOccupied(neighborCoord))
                     {
                         visited.Add(neighborCoord);

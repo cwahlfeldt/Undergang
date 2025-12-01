@@ -9,7 +9,7 @@ public class Utils
 
         for (int i = 0; i < size; i++)
         {
-            var randNum = rand.Next(20, 90);
+            var randNum = rand.Next(Config.BlockedTileIndexMin, Config.BlockedTileIndexMax);
             array[i] = randNum;
         }
 

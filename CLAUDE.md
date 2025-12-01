@@ -19,12 +19,15 @@ Open the project in Godot 4.5 and run from the editor, or use Godot's export fun
 
 ## Architecture
 
-### Entity-Component-System (ECS)
-The game uses a custom ECS architecture:
+### Hybrid ECS Architecture
+The game uses a **hybrid ECS architecture** optimized for turn-based gameplay:
 
 - **Entities**: Simple containers with unique IDs that hold components (`src/Lib/Entity.cs`)
-- **Components**: Data structures defined as readonly record structs (`src/Components/Components.cs`)
+- **Components**: Data structures organized by domain in `src/Components/` (see Component Organization below)
 - **Systems**: Game logic processors that operate on entities with specific components (`src/Systems/`)
+- **Turn Orchestration**: Explicit action sequencing for clarity (see `ARCHITECTURE.md`)
+
+**Key Philosophy**: Use ECS for entity management and queries. Use direct orchestration for turn flow and action sequencing.
 
 ### Core Systems
 Systems are managed by the `Systems` class (`src/Services/Systems.cs`) and can be:
@@ -47,10 +50,12 @@ The game uses a hex-based coordinate system (`src/Lib/HexGrid.cs`) with:
 
 ### Services
 - **Events**: Global event system for decoupled communication (`src/Services/Events.cs`)
-- **Entities**: Entity management and queries (`src/Services/Entites.cs`)
+- **Entities**: Entity storage, management, and queries (`src/Services/Entities.cs`)
+- **EntityFactory**: Entity creation (grid, tiles, units) - accessed via `Entities.Factory` (`src/Services/EntityFactory.cs`)
 - **PathFinder**: A* pathfinding on the hex grid (`src/Services/PathFinder.cs`)
 - **Materials**: Material management for visual effects (`src/Services/Materials.cs`)
 - **Tweener**: Animation and interpolation system (`src/Services/Tweener.cs`)
+- **Systems**: System registry and lifecycle management (`src/Services/Systems.cs`)
 
 ### Game Flow
 1. `GameManager` initializes the systems and creates the initial game state
@@ -60,10 +65,33 @@ The game uses a hex-based coordinate system (`src/Lib/HexGrid.cs`) with:
 
 ## Key Patterns
 
+### Component Organization (Phase 3 Refactoring)
+Components are organized by domain in separate files for better maintainability:
+
+**File Structure:**
+- `src/Components/Core.cs` - Tile, Instance, Name, Coordinate, TileIndex
+- `src/Components/Combat.cs` - Health, Damage, AttackRange, Attacker, Target
+- `src/Components/Movement.cs` - Movement, MoveRange
+- `src/Components/Range.cs` - RangeCircle, RangeDiagonal, RangeExplosion, RangeHex, RangeNGon
+- `src/Components/Units.cs` - Player, Enemy, Grunt, Sniper, Unit
+- `src/Components/State.cs` - CurrentTurn, Active, TurnOrder, WaitingForAction, SelectedTile
+- `src/Components/Animation.cs` - CurrentAnimation, AnimationPlayer
+
+All components remain in the `Game.Components` namespace. Import with: `using Game.Components;`
+
 ### Component Design
 Components are implemented as readonly record structs with implicit operators:
 ```csharp
 public record struct Health(int Value) { public static implicit operator int(Health health) => health.Value; }
+```
+
+### Entity Creation (EntityFactory Pattern)
+Use the EntityFactory for creating game entities:
+```csharp
+// Access factory via Entities service
+var player = entityManager.Factory.CreatePlayer();
+var enemy = entityManager.Factory.CreateEnemy(UnitType.Grunt);
+var grid = entityManager.Factory.CreateGrid(mapSize: 5, blockedTilesAmt: 16);
 ```
 
 ### Entity Queries
@@ -71,13 +99,38 @@ The `Entities` service provides LINQ-style queries:
 ```csharp
 var enemies = entities.Query<Unit, Enemy>();
 var player = entities.Query<Player>().FirstOrDefault();
+var tiles = entities.GetTilesInRange(coord, range);
 ```
 
-### System Dependencies
-Systems receive dependencies through constructor injection managed by `SystemDependencies`.
+### Configuration Management (Centralized)
+All game constants are defined in `Config.cs`:
+```csharp
+Config.PlayerStart              // Player spawn position
+Config.PlayerSpawnExclusionRadius  // Enemy spawn exclusion
+Config.DefaultMapSize           // Map generation size
+Config.DiagonalRangeMin/Max     // Range pattern configuration
+```
 
-### Event-Driven Architecture
-Systems communicate through the global `Events` service rather than direct coupling.
+**Best Practice**: Never hardcode game values. Always use Config constants.
+
+### System Dependencies
+Systems receive dependencies through lazy initialization:
+```csharp
+public override void Initialize()
+{
+    _combatSystem = Systems.Get<CombatSystem>();
+    _animationSystem = Systems.Get<AnimationSystem>();
+}
+```
+
+**Future Improvement**: See `ARCHITECTURE.md` for recommended constructor injection pattern.
+
+### Event Usage
+Events are used for **notifications**, not control flow:
+- ✅ Use events for: UI updates, cross-system notifications
+- ❌ Avoid events for: Turn sequencing, action orchestration
+
+**See ARCHITECTURE.md** for recommended turn orchestration pattern.
 
 ## Scene Structure
 - **Main.tscn**: Entry point scene
@@ -96,17 +149,88 @@ Systems communicate through the global `Events` service rather than direct coupl
 ### Adding New Systems
 1. Create a class inheriting from `System` in `src/Systems/`
 2. Register it in `GameManager._Ready()` using `_systems.Register<T>()` or `_systems.RegisterConcurrent<T>()`
-3. Implement required methods: `Initialize()`, `Update()`, `Process()`, `Cleanup()`
+3. Implement lifecycle methods:
+   - `Initialize()` - Setup dependencies, subscribe to events
+   - `Update()` - Turn-based processing (optional - see ARCHITECTURE.md)
+   - `Cleanup()` - Unsubscribe from events, cleanup resources
+4. Inject system dependencies in `Initialize()` using `Systems.Get<T>()`
+
+**Note**: Consider whether your system needs `Update()` polling or should use direct method calls. See `ARCHITECTURE.md` for guidance.
 
 ### Adding New Components
-1. Define in `src/Components/Components.cs` as readonly record structs
-2. Add implicit operators for convenience
-3. Use marker components (empty structs) for entity tagging
+1. Choose the appropriate domain file in `src/Components/`:
+   - Core: Tiles, coordinates, basic properties
+   - Combat: Health, damage, attack-related
+   - Movement: Movement range, position changes
+   - Range: Attack range patterns
+   - Units: Unit types, classifications
+   - State: Turn management, game state
+   - Animation: Animation states, players
+2. Define as readonly record struct with implicit operators:
+   ```csharp
+   public record struct MyComponent(int Value)
+   {
+       public static implicit operator int(MyComponent c) => c.Value;
+   }
+   ```
+3. Use marker components (empty structs) for tagging:
+   ```csharp
+   public readonly record struct MyMarker;
+   ```
+
+**If adding a new domain**, create a new file following the existing pattern.
 
 ### Entity Management
-- Use `Entities.Query<T>()` methods for component-based entity selection
-- Entity creation helpers are available in `Entities` service
-- Always clean up entities when removing them from the game
+- **Creation**: Use `Entities.Factory.CreateX()` methods
+  ```csharp
+  var enemy = Entities.Factory.CreateEnemy(UnitType.Sniper);
+  ```
+- **Queries**: Use `Entities.Query<T>()` for component-based selection
+  ```csharp
+  var enemies = Entities.Query<Unit, Enemy>();
+  var player = Entities.Query<Player>().FirstOrDefault();
+  ```
+- **Modification**: Add/remove components directly on entities
+  ```csharp
+  entity.Add(new Health(5));
+  entity.Remove<Movement>();
+  entity.Update(new Coordinate(newPos));
+  ```
+- **Cleanup**: Always remove entities when defeated/destroyed
+  ```csharp
+  Entities.RemoveEntity(entity);
+  ```
+
+### Configuration
+- **Always use Config constants** instead of hardcoding values
+- Add new constants to appropriate section in `Config.cs`:
+  - Player settings
+  - Map generation settings
+  - Range settings
+- Example:
+  ```csharp
+  // Bad
+  var range = 5;
+
+  // Good
+  public static int NewFeatureRange = 5;  // In Config.cs
+  var range = Config.NewFeatureRange;      // In code
+  ```
+
+### Code Quality Best Practices
+1. **No magic numbers** - Use Config constants
+2. **DRY principle** - Extract duplicate code into helpers
+3. **Clear naming** - Methods should describe their action
+4. **Separation of concerns** - Keep systems focused on single responsibility
+5. **Documentation** - Add XML comments for public methods and complex logic
+
+### Recent Refactoring (Phases 1-3)
+The codebase has undergone significant cleanup:
+- **Phase 1**: Critical bug fixes, code deduplication
+- **Phase 2**: Configuration centralization, EntityFactory separation, complete range implementations
+- **Phase 3**: Component organization into domain-focused files
+
+See git history for detailed changes.
 
 ## Combat System (Hoplite-Style)
 
@@ -189,12 +313,14 @@ The system is ready for Mixamo characters. See `ANIMATIONS.md` for complete work
 
 The game supports multiple attack range patterns through components:
 
-**Range Type Components:**
-- `RangeCircle` - Adjacent tiles (6 hex neighbors) - Currently implemented
-- `RangeDiagonal` - Diagonal tiles
-- `RangeHex` - Hex ring at distance
-- `RangeExplosion` - Area of effect
-- `RangeNGon` - N-sided polygon pattern
+**Range Type Components (All Implemented):**
+- `RangeCircle` - Adjacent tiles (6 hex neighbors)
+- `RangeDiagonal` - Directional lines along 6 hex directions, distance 2-5 (Hoplite Archer style)
+- `RangeHex` - Hex ring at specific distance (tiles exactly N steps away)
+- `RangeExplosion` - Area of effect (all tiles within radius)
+- `RangeNGon` - Polygon pattern (alternating directions forming triangular shape)
+
+All range patterns are configurable via `Config.cs` constants.
 
 **Dynamic Range Calculation:**
 ```csharp
@@ -240,7 +366,7 @@ public static IEnumerable<Vector3I> GetRangeDiagonal(Vector3I center)
 
 2. **Create the enemy** with the range component:
 ```csharp
-var sniper = Entities.CreateEnemy(UnitType.Sniper);
+var sniper = Entities.Factory.CreateEnemy(UnitType.Sniper);
 sniper.Add(new RangeDiagonal());  // Automatically uses diagonal range
 sniper.Add(new Damage(2));
 sniper.Add(new Health(3));
@@ -267,3 +393,45 @@ Enable verbose logging to trace:
 - When enemies pass turn vs move
 - When player enters/exits threat zones
 - When attacks trigger and why
+
+---
+
+## Additional Documentation
+
+### Architecture & Patterns
+- **ARCHITECTURE.md** - Detailed guide on turn flow orchestration and the recommended "Option 2" pattern for improving turn-based game flow. Read this for architectural guidance on explicit action sequencing vs event-driven patterns.
+
+### Animation System
+- **ANIMATIONS.md** - Complete guide for integrating Mixamo characters and animations
+
+### Project Files
+- **README.md** - Project overview and quick start guide
+- **.gitignore** - Git ignore patterns
+- **project.godot** - Godot engine configuration
+
+---
+
+## Summary
+
+Undergang is a well-structured turn-based tactical game using a hybrid ECS architecture. The codebase has been recently refactored (Phases 1-3) for improved maintainability, with centralized configuration, organized components, and clear separation between entity creation and management.
+
+**Key strengths:**
+- Clean component-based design
+- Flexible range system supporting multiple attack patterns
+- Hoplite-style tactical combat mechanics
+- Ready for Mixamo character integration
+- Well-documented codebase with clear patterns
+
+**For new developers:**
+1. Start by reading this file completely
+2. Review `ARCHITECTURE.md` for turn flow patterns
+3. Explore `src/Components/` to understand data structures
+4. Look at `src/Systems/` for game logic
+5. Check `Config.cs` for game constants
+
+**When making changes:**
+- Use Config constants, never hardcode values
+- Add components to appropriate domain file
+- Use EntityFactory for entity creation
+- Follow existing patterns for consistency
+- See `ARCHITECTURE.md` for recommended turn orchestration approach

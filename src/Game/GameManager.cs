@@ -29,11 +29,11 @@ namespace Game
 			_systems.Register<MovementSystem>();
 			_systems.Register<CombatSystem>();
 
-			entityManager.CreateGrid(5);
-			entityManager.CreatePlayer();
-			entityManager.CreateEnemy(UnitType.Grunt);
-			entityManager.CreateEnemy(UnitType.Grunt);
-			entityManager.CreateEnemy(UnitType.Sniper);
+			entityManager.Factory.CreateGrid(5);
+			entityManager.Factory.CreatePlayer();
+			entityManager.Factory.CreateEnemy(UnitType.Grunt);
+			entityManager.Factory.CreateEnemy(UnitType.Grunt);
+			entityManager.Factory.CreateEnemy(UnitType.Sniper);
 
 			_systems.Initialize();
 		}

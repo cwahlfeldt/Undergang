@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using Game.Components;
 using Godot;
 
@@ -6,12 +7,92 @@ namespace Game
 {
     public class TurnSystem : System
     {
-        private int _currentTurnIndex = -1;  // Add this field to track current turn
+        private int _currentTurnIndex = -1;
+        private MovementSystem _movementSystem;
+        private AnimationSystem _animationSystem;
 
         public override void Initialize()
         {
-            Events.OnUnitActionComplete += OnUnitActionComplete;
+            _movementSystem = Systems.Get<MovementSystem>();
+            _animationSystem = Systems.Get<AnimationSystem>();
+
             SetupInitialTurnOrder();
+        }
+
+        /// <summary>
+        /// Orchestrates a complete player action from start to finish
+        /// </summary>
+        public async Task ExecutePlayerAction(Entity player, Vector3I destination)
+        {
+            // Clear waiting state
+            player.Remove<WaitingForAction>();
+
+            // Execute movement with combat
+            bool playerDefeated = await _movementSystem.ExecuteMove(player, destination);
+
+            if (playerDefeated)
+            {
+                // Handle player defeat
+                GD.Print("Player defeated!");
+                return;
+            }
+
+            // Set animation back to idle
+            if (player.Has<Unit>())
+            {
+                _animationSystem.SetAnimationState(player, AnimationState.Idle);
+            }
+
+            // Complete the turn
+            CompleteUnitTurn(player);
+        }
+
+        /// <summary>
+        /// Orchestrates a complete enemy action
+        /// </summary>
+        public async Task ExecuteEnemyAction(Entity enemy, Vector3I destination)
+        {
+            enemy.Remove<WaitingForAction>();
+
+            // Enemy movement (no combat on enemy turn in Hoplite-style)
+            await _movementSystem.ExecuteMove(enemy, destination);
+
+            // Set animation
+            if (enemy.Has<Unit>())
+            {
+                _animationSystem.SetAnimationState(enemy, AnimationState.Idle);
+            }
+
+            // Complete the turn
+            CompleteUnitTurn(enemy);
+        }
+
+        /// <summary>
+        /// Enemy passes turn without acting
+        /// </summary>
+        public void ExecuteEnemyPass(Entity enemy)
+        {
+            GD.Print($"Enemy {enemy.Id} passes turn (player in range)");
+            enemy.Remove<WaitingForAction>();
+            CompleteUnitTurn(enemy);
+        }
+
+        private void CompleteUnitTurn(Entity unit)
+        {
+            unit.Remove<CurrentTurn>();
+            AdvanceToNextUnit();
+        }
+
+        private void AdvanceToNextUnit()
+        {
+            var allUnits = Entities.Query<TurnOrder>()
+                .OrderBy(e => e.Get<TurnOrder>())
+                .ToList();
+
+            _currentTurnIndex = (_currentTurnIndex + 1) % allUnits.Count;
+
+            var nextUnit = allUnits[_currentTurnIndex];
+            StartUnitTurn(nextUnit);
         }
 
         private void SetupInitialTurnOrder()
@@ -28,45 +109,18 @@ namespace Game
             if (units.Any())
             {
                 _currentTurnIndex = -1; // Will become 0 after first advancement
-                AdvanceTurn();
+                AdvanceToNextUnit();
             }
         }
 
         private void StartUnitTurn(Entity unit)
         {
-            // This is potentially expensive as hell...???
+            // Setup pathfinding for new turn
             PathFinder.SetupPathfinding();
 
             unit.Add(new CurrentTurn());
             unit.Add(new WaitingForAction());
-            Events.OnTurnChanged(unit);
-        }
-
-        private void OnUnitActionComplete(Entity entity)
-        {
-            if (entity.Has<CurrentTurn>())
-            {
-                entity.Remove<CurrentTurn>();
-                entity.Remove<WaitingForAction>();
-                AdvanceTurn();
-            }
-        }
-
-        private void AdvanceTurn()
-        {
-            var allUnits = Entities.Query<TurnOrder>()
-                .OrderBy(e => e.Get<TurnOrder>())
-                .ToList();
-
-            _currentTurnIndex = (_currentTurnIndex + 1) % allUnits.Count;
-
-            var nextUnit = allUnits[_currentTurnIndex];
-            StartUnitTurn(nextUnit);
-        }
-
-        public override void Cleanup()
-        {
-            Events.OnUnitActionComplete -= OnUnitActionComplete;
+            Events.OnTurnChanged(unit);  // Notify UI and other systems
         }
     }
 }
