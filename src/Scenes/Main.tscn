@@ -1,7 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://dooip7hir4st8"]
+[gd_scene load_steps=5 format=3 uid="uid://dooip7hir4st8"]
 
 [ext_resource type="PackedScene" uid="uid://buekuqohkjb4l" path="res://src/Scenes/Board.tscn" id="1_fca0k"]
 [ext_resource type="Script" uid="uid://ds2v84eixtb2k" path="res://src/Services/LightingManager.cs" id="2_lighting"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n3v4m"]
+albedo_color = Color(0.4551001, 0.6, 0.186, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_n3v4m"]
+material = SubResource("StandardMaterial3D_n3v4m")
 
 [node name="Main" type="Node3D"]
 
@@ -14,12 +20,13 @@ SunAngleX = 50.0
 [node name="GameManager" parent="." instance=ExtResource("1_fca0k")]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(-0.30254415, -0.8634016, -0.40373847, -0.2677631, -0.32953972, 0.9053765, -0.91475135, 0.38202256, -0.13148679, 0.11469495, -1.1920929e-07, 0.096847534)
+transform = Transform3D(0.90630776, 0, -0.42261827, 0, 1, 0, 0.42261827, 0, 0.90630776, 0, 14, 0)
 light_color = Color(0.9014527, 0.9410248, 0.7506952, 1)
-light_energy = 0.89
-light_indirect_energy = 6.278
-light_volumetric_fog_energy = 10.402
-light_angular_distance = 25.05
+light_energy = 3.394
+light_indirect_energy = 5.974
+light_volumetric_fog_energy = 10.745
+light_angular_distance = 7.15
+light_specular = 0.0
 shadow_enabled = true
 shadow_bias = 5.868
 shadow_normal_bias = 2.96
@@ -34,9 +41,13 @@ directional_shadow_pancake_size = 24.5
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(0.9659258, -0.16636567, 0.1982669, 0, 0.76604444, 0.6427876, -0.25881904, -0.62088513, 0.7399421, 3.455, 15.5, -0.84)
 h_offset = -4.0
-v_offset = -12.25
+v_offset = -12.0
 projection = 1
 current = true
 fov = 45.5955
-size = 16.5
+size = 17.0
 near = 0.001
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(23.05, 0, 0, 0, 23.05, 0, 0, 0, 23.05, 0, -0.6, 0)
+mesh = SubResource("PlaneMesh_n3v4m")
