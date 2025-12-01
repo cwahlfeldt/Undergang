@@ -14,7 +14,9 @@ namespace Game
         private StandardMaterial3D _selectedMaterial;
         private StandardMaterial3D _defaultMaterial;
         private StandardMaterial3D _attackRangeMaterial;
+        private StandardMaterial3D _dashRangeMaterial;
         private Entity _selectedTile;
+        private DashSystem _dashSystem;
 
         public override void Initialize()
         {
@@ -23,10 +25,21 @@ namespace Game
             _defaultMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileBase.tres");
             _attackRangeMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileAttackRange.tres");
 
+            // Create dash range material (blue)
+            _dashRangeMaterial = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.2f, 0.5f, 1.0f, 0.6f),
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled
+            };
+
+            _dashSystem = Systems.Get<DashSystem>();
+
             Events.TileHover += OnTileHover;
             Events.TileUnhover += OnTileUnhover;
             Events.UnitHover += OnUnitHover;
             Events.UnitUnhover += OnUnitUnhover;
+            Events.TurnChanged += OnTurnChanged;
         }
 
         private void OnTileHover(Entity tile)
@@ -39,6 +52,13 @@ namespace Game
 
                 if (player.Has<CurrentTurn>())
                 {
+                    // Check if player is in dash mode
+                    if (player.Has<DashModeActive>())
+                    {
+                        // Don't show path preview for dash mode - handled by OnTurnChanged
+                        return;
+                    }
+
                     var path = PathFinder.FindPath(player.Get<Coordinate>(), tile.Get<Coordinate>(), player.Get<MoveRange>());
 
                     if (path.Count > 0)
@@ -100,6 +120,56 @@ namespace Game
             if (unit != null)
             {
                 ClearHighlightedTiles();
+            }
+        }
+
+        private void OnTurnChanged(Entity unit)
+        {
+            // Update dash range visualization when turn changes or dash mode toggles
+            if (unit.Has<Player>() && unit.Has<DashModeActive>())
+            {
+                UpdateDashRangeVisualization(unit);
+            }
+            else
+            {
+                // Clear dash highlights if not in dash mode
+                ClearHighlightedTiles();
+            }
+        }
+
+        /// <summary>
+        /// Public method to update dash visualization (called from UI)
+        /// </summary>
+        public void RefreshDashVisualization()
+        {
+            var player = Entities.Query<Player>().FirstOrDefault();
+            if (player != null && player.Has<DashModeActive>())
+            {
+                UpdateDashRangeVisualization(player);
+            }
+            else
+            {
+                ClearHighlightedTiles();
+            }
+        }
+
+        private void UpdateDashRangeVisualization(Entity player)
+        {
+            // Clear previous highlights
+            ClearHighlightedTiles();
+
+            // Get dash range tiles
+            var dashTiles = _dashSystem.GetDashRangeTiles(player.Get<Coordinate>());
+
+            // Highlight all dash range tiles in blue
+            foreach (var coord in dashTiles)
+            {
+                var tile = Entities.GetAt(coord);
+                if (tile != null)
+                {
+                    SetTileMaterial(tile, _dashRangeMaterial);
+                    _highlightedTiles.Add(tile);
+                }
             }
         }
 
@@ -232,6 +302,7 @@ namespace Game
             Events.TileUnhover -= OnTileUnhover;
             Events.UnitHover -= OnUnitHover;
             Events.UnitUnhover -= OnUnitUnhover;
+            Events.TurnChanged -= OnTurnChanged;
             ClearSelection();
         }
     }

@@ -19,4 +19,23 @@ namespace Game.Components
         public static implicit operator (Vector3I, Vector3I)(Movement movement) =>
             (movement.From, movement.To);
     }
+
+    /// <summary>
+    /// Dash ability cooldown tracker
+    /// Tracks remaining turns until dash is available again
+    /// </summary>
+    public record struct DashCooldown(int RemainingTurns)
+    {
+        public static implicit operator int(DashCooldown cooldown) => cooldown.RemainingTurns;
+    }
+
+    /// <summary>
+    /// Marker component indicating dash mode is active
+    /// </summary>
+    public readonly record struct DashModeActive();
+
+    /// <summary>
+    /// Marker component indicating a tile is within dash range
+    /// </summary>
+    public readonly record struct DashRangeTile();
 }

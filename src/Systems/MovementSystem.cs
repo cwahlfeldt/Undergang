@@ -10,11 +10,13 @@ namespace Game
     {
         private CombatSystem _combatSystem;
         private AnimationSystem _animationSystem;
+        private DashSystem _dashSystem;
 
         public override void Initialize()
         {
             _combatSystem = Systems.Get<CombatSystem>();
             _animationSystem = Systems.Get<AnimationSystem>();
+            _dashSystem = Systems.Get<DashSystem>();
         }
 
         /// <summary>
@@ -42,6 +44,63 @@ namespace Game
             Events.OnMoveCompleted(mover, fromTile.Get<Coordinate>(), toTile.Get<Coordinate>());
 
             return false;  // Unit survived
+        }
+
+        /// <summary>
+        /// Executes a dash move - fast movement without enemy reactive attacks
+        /// Player can still attack enemies in range after dashing
+        /// </summary>
+        public async Task<bool> ExecuteDash(Entity mover, Vector3I destination)
+        {
+            var origin = mover.Get<Coordinate>();
+
+            // Validate dash destination
+            if (!_dashSystem.IsValidDashDestination(origin, destination))
+            {
+                GD.Print("Invalid dash destination!");
+                return false;
+            }
+
+            // Set to Move animation state
+            if (mover.Has<Unit>())
+            {
+                _animationSystem.SetAnimationState(mover, AnimationState.Move);
+            }
+
+            // Fast dash animation - direct path, no pathfinding
+            var locations = new List<Vector3> { HexGrid.HexToWorld(destination) };
+            await Tweener.MoveThrough(mover.Get<Instance>().Node, locations, Config.DashAnimationSpeed);
+            mover.Update(new Coordinate(destination));
+
+            // Trigger cooldown
+            _dashSystem.ExecuteDash(mover, destination);
+
+            // PLAYER ATTACKS: After dashing, attack all enemies in range at destination
+            if (mover.Has<Player>() && mover.Has<CurrentTurn>())
+            {
+                var enemiesInRange = Entities.Query<Enemy, Coordinate>()
+                    .Where(enemy =>
+                    {
+                        // Check if enemy is in player's attack range from destination
+                        return IsInAttackRange(mover, destination, enemy.Get<Coordinate>()) &&
+                               _combatSystem.CanAttack(mover, enemy);
+                    })
+                    .ToList();
+
+                // Attack all enemies in range
+                foreach (var enemy in enemiesInRange)
+                {
+                    GD.Print($"Player attacks enemy {enemy.Id} after dashing!");
+                    await _combatSystem.ResolveCombat(mover, enemy);
+                }
+            }
+
+            // Fire event for UI updates, range recalculation
+            var fromTile = Entities.GetAt(origin);
+            var toTile = Entities.GetAt(destination);
+            Events.OnMoveCompleted(mover, fromTile.Get<Coordinate>(), toTile.Get<Coordinate>());
+
+            return false;  // Dash never results in defeat (no enemy reactive attacks)
         }
 
         // Legacy Update() - kept for backward compatibility

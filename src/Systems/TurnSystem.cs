@@ -10,11 +10,13 @@ namespace Game
         private int _currentTurnIndex = -1;
         private MovementSystem _movementSystem;
         private AnimationSystem _animationSystem;
+        private DashSystem _dashSystem;
 
         public override void Initialize()
         {
             _movementSystem = Systems.Get<MovementSystem>();
             _animationSystem = Systems.Get<AnimationSystem>();
+            _dashSystem = Systems.Get<DashSystem>();
 
             SetupInitialTurnOrder();
         }
@@ -27,8 +29,19 @@ namespace Game
             // Clear waiting state
             player.Remove<WaitingForAction>();
 
-            // Execute movement with combat
-            bool playerDefeated = await _movementSystem.ExecuteMove(player, destination);
+            bool playerDefeated;
+
+            // Check if player is in dash mode
+            if (player.Has<DashModeActive>())
+            {
+                // Execute dash (no combat, fast movement)
+                playerDefeated = await _movementSystem.ExecuteDash(player, destination);
+            }
+            else
+            {
+                // Execute normal movement with combat
+                playerDefeated = await _movementSystem.ExecuteMove(player, destination);
+            }
 
             if (playerDefeated)
             {

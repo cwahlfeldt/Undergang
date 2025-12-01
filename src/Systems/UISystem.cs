@@ -11,6 +11,10 @@ namespace Game
     {
         private readonly List<Control> _hearts = [];
         private Control _uiContainer;
+        private Button _dashButton;
+        private Label _dashCooldownLabel;
+        private DashSystem _dashSystem;
+        private TileHighlightSystem _tileHighlightSystem;
         private const int HEART_SIZE = 48;
         private const int HEART_SPACING = 8;
         private int _currentPlayerHealth = 0;
@@ -50,8 +54,16 @@ namespace Game
                 UpdateHearts(_currentPlayerHealth);
             }
 
+            // Get system references
+            _dashSystem = Systems.Get<DashSystem>();
+            _tileHighlightSystem = Systems.Get<TileHighlightSystem>();
+
+            // Create dash button
+            CreateDashButton(canvasLayer);
+
             // Subscribe to component changes
             Events.ComponentChanged += OnComponentChanged;
+            Events.TurnChanged += OnTurnChanged;
         }
 
         public override async Task Update()
@@ -130,9 +142,175 @@ namespace Game
             _uiContainer.AddChild(heartContainer);
         }
 
+        private void CreateDashButton(CanvasLayer canvasLayer)
+        {
+            // Create container for dash button
+            var dashContainer = new Control
+            {
+                Name = "DashContainer",
+                Position = new Vector2(20, 100),
+                Size = new Vector2(200, 80)
+            };
+            canvasLayer.AddChild(dashContainer);
+
+            // Create dash button
+            _dashButton = new Button
+            {
+                Name = "DashButton",
+                Text = "DASH (D)",
+                Size = new Vector2(180, 50),
+                Position = new Vector2(0, 0)
+            };
+
+            // Style the button
+            var styleBoxNormal = new StyleBoxFlat
+            {
+                BgColor = new Color(0.2f, 0.5f, 1.0f, 0.8f),
+                BorderColor = new Color(0.1f, 0.3f, 0.7f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            var styleBoxHover = new StyleBoxFlat
+            {
+                BgColor = new Color(0.3f, 0.6f, 1.0f, 0.9f),
+                BorderColor = new Color(0.1f, 0.3f, 0.7f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            var styleBoxPressed = new StyleBoxFlat
+            {
+                BgColor = new Color(0.1f, 0.4f, 0.8f, 1.0f),
+                BorderColor = new Color(0.1f, 0.3f, 0.7f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            var styleBoxDisabled = new StyleBoxFlat
+            {
+                BgColor = new Color(0.3f, 0.3f, 0.3f, 0.5f),
+                BorderColor = new Color(0.2f, 0.2f, 0.2f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            _dashButton.AddThemeStyleboxOverride("normal", styleBoxNormal);
+            _dashButton.AddThemeStyleboxOverride("hover", styleBoxHover);
+            _dashButton.AddThemeStyleboxOverride("pressed", styleBoxPressed);
+            _dashButton.AddThemeStyleboxOverride("disabled", styleBoxDisabled);
+
+            _dashButton.Pressed += OnDashButtonPressed;
+            dashContainer.AddChild(_dashButton);
+
+            // Create cooldown label
+            _dashCooldownLabel = new Label
+            {
+                Name = "DashCooldownLabel",
+                Position = new Vector2(0, 55),
+                Size = new Vector2(180, 25),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Visible = false
+            };
+
+            _dashCooldownLabel.AddThemeFontSizeOverride("font_size", 18);
+            _dashCooldownLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.3f, 0.3f, 1.0f));
+
+            dashContainer.AddChild(_dashCooldownLabel);
+
+            // Initial update
+            UpdateDashButtonState();
+        }
+
+        private void OnDashButtonPressed()
+        {
+            if (_player == null) return;
+
+            // Toggle dash mode
+            _dashSystem.ToggleDashMode();
+
+            // Update button visual state
+            UpdateDashButtonState();
+
+            // Refresh visualization
+            _tileHighlightSystem.RefreshDashVisualization();
+        }
+
+        private void OnTurnChanged(Entity unit)
+        {
+            // Update dash button when turn changes
+            if (unit.Has<Player>())
+            {
+                UpdateDashButtonState();
+            }
+        }
+
+        private void UpdateDashButtonState()
+        {
+            if (_player == null || _dashButton == null) return;
+
+            bool isDashAvailable = _dashSystem.IsDashAvailable(_player);
+            int cooldown = _dashSystem.GetRemainingCooldown(_player);
+            bool isDashActive = _player.Has<DashModeActive>();
+
+            if (isDashActive)
+            {
+                // Dash mode is active
+                _dashButton.Text = "DASH (ON)";
+                _dashButton.Disabled = false;
+                _dashCooldownLabel.Visible = false;
+            }
+            else if (isDashAvailable)
+            {
+                // Dash is ready
+                _dashButton.Text = "DASH (D)";
+                _dashButton.Disabled = false;
+                _dashCooldownLabel.Visible = false;
+            }
+            else
+            {
+                // Dash is on cooldown
+                _dashButton.Text = "DASH (D)";
+                _dashButton.Disabled = true;
+                _dashCooldownLabel.Text = $"Cooldown: {cooldown}";
+                _dashCooldownLabel.Visible = true;
+            }
+        }
+
         public override void Cleanup()
         {
             Events.ComponentChanged -= OnComponentChanged;
+            Events.TurnChanged -= OnTurnChanged;
+
+            if (_dashButton != null)
+            {
+                _dashButton.Pressed -= OnDashButtonPressed;
+            }
 
             foreach (var heart in _hearts)
             {

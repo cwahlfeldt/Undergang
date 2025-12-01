@@ -19,4 +19,10 @@ public record Config
     public static int ExplosionRadius = 2;
     public static int AxisRangeMin = 2;
     public static int AxisRangeMax = 5;
+
+    // Dash ability settings
+    public static int DashRange = 2;
+    public static int DashCooldown = 3;
+    public static float DashAnimationSpeed = 0.25f;
+    public static float NormalMoveAnimationSpeed = 0.5f;
 }
