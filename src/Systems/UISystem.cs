@@ -13,6 +13,7 @@ namespace Game
         private Control _uiContainer;
         private Button _dashButton;
         private Label _dashCooldownLabel;
+        private Label _fpsLabel;
         private DashSystem _dashSystem;
         private TileHighlightSystem _tileHighlightSystem;
         private const int HEART_SIZE = 48;
@@ -61,6 +62,9 @@ namespace Game
             // Create dash button
             CreateDashButton(canvasLayer);
 
+            // Create FPS counter
+            CreateFpsCounter(canvasLayer);
+
             // Subscribe to component changes
             Events.ComponentChanged += OnComponentChanged;
             Events.TurnChanged += OnTurnChanged;
@@ -78,6 +82,9 @@ namespace Game
                     UpdateHearts(_currentPlayerHealth);
                 }
             }
+
+            // Update FPS counter
+            UpdateFpsCounter();
 
             await Task.CompletedTask;
         }
@@ -299,6 +306,46 @@ namespace Game
                 _dashButton.Disabled = true;
                 _dashCooldownLabel.Text = $"Cooldown: {cooldown}";
                 _dashCooldownLabel.Visible = true;
+            }
+        }
+
+        private void CreateFpsCounter(CanvasLayer canvasLayer)
+        {
+            // Create FPS label in top-right corner
+            _fpsLabel = new Label
+            {
+                Name = "FpsCounter",
+                Position = new Vector2(0, 10),
+                Size = new Vector2(100, 30),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Text = "FPS: 0"
+            };
+
+            // Style the FPS label
+            _fpsLabel.AddThemeFontSizeOverride("font_size", 20);
+            _fpsLabel.AddThemeColorOverride("font_color", new Color(0.2f, 1.0f, 0.2f, 1.0f)); // Green color
+            _fpsLabel.AddThemeColorOverride("font_outline_color", new Color(0.0f, 0.0f, 0.0f, 1.0f)); // Black outline
+            _fpsLabel.AddThemeConstantOverride("outline_size", 2);
+
+            // Position in top-right corner - we'll update this in Update() to account for window size
+            canvasLayer.AddChild(_fpsLabel);
+        }
+
+        private void UpdateFpsCounter()
+        {
+            if (_fpsLabel == null) return;
+
+            // Get current FPS from Engine
+            int fps = (int)Engine.GetFramesPerSecond();
+            _fpsLabel.Text = $"FPS: {fps}";
+
+            // Update position to stay in top-right corner
+            var viewport = _fpsLabel.GetViewport();
+            if (viewport != null)
+            {
+                var viewportSize = viewport.GetVisibleRect().Size;
+                _fpsLabel.Position = new Vector2(viewportSize.X - 110, 10);
             }
         }
 
