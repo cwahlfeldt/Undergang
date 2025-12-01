@@ -38,7 +38,6 @@ public partial class LightingManager : Node3D
         SetupDirectionalLight();
         ApplyPostProcessing();
 
-        GD.Print("[LightingManager] Professional lighting setup complete");
     }
 
     private void SetupWorldEnvironment()
@@ -87,7 +86,6 @@ public partial class LightingManager : Node3D
         _environment.TonemapExposure = 1.0f;
         _environment.TonemapWhite = 1.0f;
 
-        GD.Print("[LightingManager] WorldEnvironment created with sky and ambient lighting");
     }
 
     private void SetupDirectionalLight()
@@ -125,7 +123,6 @@ public partial class LightingManager : Node3D
         var radY = Mathf.DegToRad(SunAngleY);
         _directionalLight.RotationDegrees = new Vector3(SunAngleX, SunAngleY, 0);
 
-        GD.Print("[LightingManager] DirectionalLight configured with professional settings");
     }
 
     private void ApplyPostProcessing()
@@ -142,7 +139,6 @@ public partial class LightingManager : Node3D
             _environment.SsaoDetail = 0.5f;
             _environment.SsaoHorizon = 0.06f;
             _environment.SsaoSharpness = 0.98f;
-            GD.Print("[LightingManager] SSAO enabled");
         }
 
         // SSIL (Screen Space Indirect Lighting) - adds bounce light
@@ -153,7 +149,6 @@ public partial class LightingManager : Node3D
             _environment.SsilIntensity = 1.0f;
             _environment.SsilSharpness = 0.98f;
             _environment.SsilNormalRejection = 1.0f;
-            GD.Print("[LightingManager] SSIL enabled for bounce lighting");
         }
 
         // Glow/Bloom for highlights
@@ -167,7 +162,6 @@ public partial class LightingManager : Node3D
             _environment.GlowBlendMode = GodotEnvironment.GlowBlendModeEnum.Softlight;
             _environment.GlowHdrThreshold = 1.0f;
             _environment.GlowHdrScale = 2.0f;
-            GD.Print("[LightingManager] Glow/Bloom enabled");
         }
 
         // Adjustments for better color
@@ -176,7 +170,6 @@ public partial class LightingManager : Node3D
         _environment.AdjustmentContrast = 1.1f;
         _environment.AdjustmentSaturation = 1.05f;
 
-        GD.Print("[LightingManager] Post-processing effects applied");
     }
 
     /// <summary>

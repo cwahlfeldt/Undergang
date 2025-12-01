@@ -46,7 +46,6 @@ namespace Game
             if (playerDefeated)
             {
                 // Handle player defeat
-                GD.Print("Player defeated!");
                 return;
             }
 
@@ -85,7 +84,6 @@ namespace Game
         /// </summary>
         public void ExecuteEnemyPass(Entity enemy)
         {
-            GD.Print($"Enemy {enemy.Id} passes turn (player in range)");
             enemy.Remove<WaitingForAction>();
             CompleteUnitTurn(enemy);
         }
@@ -128,9 +126,6 @@ namespace Game
 
         private void StartUnitTurn(Entity unit)
         {
-            // Setup pathfinding for new turn
-            PathFinder.SetupPathfinding();
-
             unit.Add(new CurrentTurn());
             unit.Add(new WaitingForAction());
             Events.OnTurnChanged(unit);  // Notify UI and other systems

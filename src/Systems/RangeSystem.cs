@@ -16,15 +16,9 @@ namespace Game
             UpdateRanges();
         }
 
-        public override async Task Update()
-        {
-            UpdateRanges();
-        }
-
         private void OnUnitDefeated(Entity unit)
         {
             // When a unit is defeated, refresh attack ranges
-            GD.Print("RangeSystem: Unit defeated, refreshing attack ranges");
             UpdateRanges();
         }
 
@@ -37,24 +31,21 @@ namespace Game
         private void UpdateRanges()
         {
             // remove old
-            Entities.Query<AttackRangeTile>()
-                .ToList()
-                .ForEach(tile =>
-                    tile.Remove<AttackRangeTile>());
+            foreach (var tile in Entities.Query<AttackRangeTile>())
+            {
+                tile.Remove<AttackRangeTile>();
+            }
 
             // assign the unit id to a tile for reference of its attack range
-            Entities.Query<Unit>()
-                .ToList()
-                .ForEach(u =>
+            foreach (var u in Entities.Query<Unit>())
+            {
+                foreach (var coord in GetAttackRangeTiles(u, u.Get<Coordinate>()))
                 {
-                    var coordsInRange = GetAttackRangeTiles(u, u.Get<Coordinate>()).ToList();
-                    coordsInRange.ForEach(coord =>
-                    {
-                        var tile = Entities.GetAt(coord);
-                        if (tile != null && tile.Has<Traversable>())
-                            tile.Add(new AttackRangeTile(u.Id));
-                    });
-                });
+                    var tile = Entities.GetAt(coord);
+                    if (tile != null && tile.Has<Traversable>())
+                        tile.Add(new AttackRangeTile(u.Id));
+                }
+            }
         }
 
         // Range Functions

@@ -91,7 +91,6 @@ namespace Game
                 else
                 {
                     // Animation not found - this is expected during development
-                    GD.Print($"Animation '{animationName}' not found for {unitType}");
                 }
                 return;
             }

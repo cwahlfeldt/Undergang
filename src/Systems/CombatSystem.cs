@@ -30,14 +30,12 @@ namespace Game
 		{
 			if (attacker == null || defender == null)
 			{
-				GD.PrintErr("CombatSystem.ResolveCombat: null attacker or defender");
-				return;
+					return;
 			}
 
 			if (!attacker.Has<Damage>() || !defender.Has<Health>())
 			{
-				GD.PrintErr($"CombatSystem.ResolveCombat: missing Damage or Health components");
-				return;
+					return;
 			}
 
 			// Get combat values
@@ -46,12 +44,7 @@ namespace Game
 			int newHealth = currentHealth - damage;
 
 			// Debug: Print detailed combat info
-			GD.Print($"=== COMBAT TRIGGERED ===");
-			GD.Print($"Attacker: {attacker.Id} (Enemy: {attacker.Has<Enemy>()}, Player: {attacker.Has<Player>()})");
-			GD.Print($"Defender: {defender.Id} (Enemy: {defender.Has<Enemy>()}, Player: {defender.Has<Player>()})");
-			GD.Print($"Damage: {damage}, Current Health: {currentHealth} -> New Health: {newHealth}");
-
-			// Play attack animation (uses AnimationSystem for state-based animations)
+						// Play attack animation (uses AnimationSystem for state-based animations)
 			if (attacker.Has<Unit>() && defender.Has<Unit>())
 			{
 				await _animationSystem.PlayAttackAnimation(attacker, defender);
@@ -72,8 +65,7 @@ namespace Game
 			if (newHealth <= 0)
 			{
 				// Defender is defeated
-				GD.Print($"Unit {defender.Id} defeated!");
-				Events.OnUnitDefeated(defender);
+					Events.OnUnitDefeated(defender);
 			}
 			else
 			{
@@ -104,9 +96,7 @@ namespace Game
 		{
 			if (unit == null) return;
 
-			GD.Print($"CombatSystem.OnUnitDefeated: Removing unit {unit.Id}");
-
-			// Remove visual representation
+				// Remove visual representation
 			if (unit.Has<Instance>())
 			{
 				var instance = unit.Get<Instance>();

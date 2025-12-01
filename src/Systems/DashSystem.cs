@@ -30,7 +30,6 @@ namespace Game
             // Can't enable dash mode if on cooldown
             if (!player.Has<DashModeActive>() && !IsDashAvailable(player))
             {
-                GD.Print("Dash is on cooldown!");
                 return;
             }
 
@@ -39,14 +38,12 @@ namespace Game
                 // Disable dash mode
                 player.Remove<DashModeActive>();
                 ClearDashRangeTiles();
-                GD.Print("Dash mode disabled");
             }
             else
             {
                 // Enable dash mode
                 player.Add(new DashModeActive());
                 UpdateDashRangeTiles(player);
-                GD.Print("Dash mode enabled");
             }
         }
 
@@ -107,7 +104,6 @@ namespace Game
             player.Remove<DashModeActive>();
             ClearDashRangeTiles();
 
-            GD.Print($"Dash executed! Cooldown: {Config.DashCooldown} turns");
         }
 
         /// <summary>
@@ -167,11 +163,9 @@ namespace Game
                 {
                     var newCooldown = currentCooldown - 1;
                     unit.Update(new DashCooldown(newCooldown));
-                    GD.Print($"Dash cooldown: {newCooldown} turns remaining");
 
                     if (newCooldown == 0)
                     {
-                        GD.Print("Dash ability ready!");
                     }
                 }
             }

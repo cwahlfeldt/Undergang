@@ -47,12 +47,10 @@ namespace Game
                 if (IsRangedUnitType(unit))
                 {
                     targetPosition = FindSniperTargetPosition(unit, enemyCoord, playerCoord, unit.Get<MoveRange>());
-                    GD.Print($"Sniper {unit.Id} moves towards ideal position");
                 }
                 else
                 {
                     targetPosition = playerCoord;  // Grunt: move toward player
-                    GD.Print($"Enemy {unit.Id} moves towards player");
                 }
 
                 // Execute movement

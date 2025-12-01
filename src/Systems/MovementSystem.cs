@@ -57,7 +57,6 @@ namespace Game
             // Validate dash destination
             if (!_dashSystem.IsValidDashDestination(origin, destination))
             {
-                GD.Print("Invalid dash destination!");
                 return false;
             }
 
@@ -90,7 +89,6 @@ namespace Game
                 // Attack all enemies in range
                 foreach (var enemy in enemiesInRange)
                 {
-                    GD.Print($"Player attacks enemy {enemy.Id} after dashing!");
                     await _combatSystem.ResolveCombat(mover, enemy);
                 }
             }
@@ -165,13 +163,11 @@ namespace Game
                 // Process attacks from all threatening enemies
                 foreach (var attacker in attackingEnemies)
                 {
-                    GD.Print($"Player moved into enemy {attacker.Id} attack range at {destination}!");
                     await _combatSystem.ResolveCombat(attacker, mover);
 
                     // Check if player was defeated after each attack
                     if (!mover.Has<Health>() || mover.Get<Health>() <= 0)
                     {
-                        GD.Print("Player defeated by enemy attack!");
                         return true; // Unit defeated
                     }
                 }
@@ -197,7 +193,6 @@ namespace Game
                     // OR if we just entered their range (covered by reactive attack above)
                     if (enemyInRange != null && enemy.Id == enemyInRange.Id)
                     {
-                        GD.Print($"Player attacks enemy {enemy.Id} while moving within attack range!");
                         await _combatSystem.ResolveCombat(mover, enemy);
                     }
                 }
