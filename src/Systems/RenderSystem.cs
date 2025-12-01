@@ -69,12 +69,13 @@ namespace Game
 
 		/// <summary>
 		/// Maps unit types to their corresponding scene file paths.
-		/// All sniper variants use the base Sniper.tscn scene.
+		/// Wizard and all sniper variants use the base Sniper.tscn scene.
 		/// </summary>
 		private string GetUnitScenePath(UnitType unitType)
 		{
 			return unitType switch
 			{
+				UnitType.Wizard => "res://src/Scenes/Wizard.tscn",
 				UnitType.SniperAxisQ => "res://src/Scenes/Sniper.tscn",
 				UnitType.SniperAxisR => "res://src/Scenes/Sniper.tscn",
 				UnitType.SniperAxisS => "res://src/Scenes/Sniper.tscn",

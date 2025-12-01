@@ -14,7 +14,7 @@ public record Config
 
     // Range settings
     public static int DiagonalRangeMin = 2;
-    public static int DiagonalRangeMax = 5;
+    public static int DiagonalRangeMax = 6;
     public static int HexRingDistance = 2;
     public static int ExplosionRadius = 2;
     public static int AxisRangeMin = 2;

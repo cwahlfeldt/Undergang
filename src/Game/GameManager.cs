@@ -15,7 +15,7 @@ namespace Game
 
 			var entityManager = _systems.GetEntityManager();
 
-			_systems.RegisterConcurrent<ComponentDebugSystem>();
+			// _systems.RegisterConcurrent<ComponentDebugSystem>();
 			_systems.RegisterConcurrent<DebugSystem>();
 			_systems.RegisterConcurrent<TileHighlightSystem>();
 
@@ -29,15 +29,14 @@ namespace Game
 			_systems.Register<MovementSystem>();
 			_systems.Register<CombatSystem>();
 
-			entityManager.Factory.CreateGrid(5);
+			entityManager.Factory.CreateGrid(6);
 			entityManager.Factory.CreatePlayer();
 			entityManager.Factory.CreateEnemy(UnitType.Grunt);
 			entityManager.Factory.CreateEnemy(UnitType.Grunt);
+			entityManager.Factory.CreateEnemy(UnitType.Wizard);
+			entityManager.Factory.CreateEnemy(UnitType.SniperAxisS);
 			entityManager.Factory.CreateEnemy(UnitType.SniperAxisQ);
 			entityManager.Factory.CreateEnemy(UnitType.SniperAxisR);
-			entityManager.Factory.CreateEnemy(UnitType.SniperAxisS);
-
-
 
 			_systems.Initialize();
 		}

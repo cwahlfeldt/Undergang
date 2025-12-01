@@ -10,7 +10,7 @@ namespace Game.Components
 
     // Enemy type markers
     public readonly record struct Grunt();
-    public readonly record struct Sniper();
+    public readonly record struct Wizard();
     public readonly record struct SniperAxisQ();
     public readonly record struct SniperAxisR();
     public readonly record struct SniperAxisS();

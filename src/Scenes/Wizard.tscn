@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://cu7aveyof5h02"]
+
+[ext_resource type="PackedScene" uid="uid://ceqsdsau10qp0" path="res://assets/models/Skeleton_Rogue.glb" id="1_ln43o"]
+[ext_resource type="PackedScene" uid="uid://di4ym2pcuivcp" path="res://assets/models/Skeleton_Mage.glb" id="2_ln43o"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_wsnrg"]
+height = 1.49524
+
+[node name="Enemy" type="Area3D" groups=["Enemy"]]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
+
+[node name="Skeleton_Rogue" parent="." instance=ExtResource("1_ln43o")]
+transform = Transform3D(-0.711, 0, 1.0735803e-07, 0, 0.711, 0, -1.0735803e-07, 0, -0.711, 0.034920003, -6.0021877e-05, -0.033660002)
+visible = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.800174, 0)
+shape = SubResource("CapsuleShape3D_wsnrg")
+
+[node name="Skeleton_Mage" parent="." instance=ExtResource("2_ln43o")]
+transform = Transform3D(-0.72, 0, 1.0871698e-07, 0, 0.72, 0, -1.0871698e-07, 0, -0.72, 0, 0, 0)

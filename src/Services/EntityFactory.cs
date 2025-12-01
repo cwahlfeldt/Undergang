@@ -87,8 +87,8 @@ namespace Game
                     enemy.Add(new Health(1));
                     break;
 
-                case UnitType.Sniper:
-                    enemy.Add(new Sniper());
+                case UnitType.Wizard:
+                    enemy.Add(new Wizard());
                     enemy.Add(new RangeDiagonal());
                     enemy.Add(new Damage(1));
                     enemy.Add(new Health(1));

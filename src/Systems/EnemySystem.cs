@@ -44,7 +44,7 @@ namespace Game
                 // Determine movement target based on enemy type
                 Vector3I targetPosition;
 
-                if (IsSniperType(unit))
+                if (IsRangedUnitType(unit))
                 {
                     targetPosition = FindSniperTargetPosition(unit, enemyCoord, playerCoord, unit.Get<MoveRange>());
                     GD.Print($"Sniper {unit.Id} moves towards ideal position");
@@ -61,11 +61,11 @@ namespace Game
         }
 
         /// <summary>
-        /// Check if unit is any sniper variant
+        /// Check if unit is any sniper variant (including Wizard)
         /// </summary>
-        private bool IsSniperType(Entity unit)
+        private bool IsRangedUnitType(Entity unit)
         {
-            return unit.Has<Sniper>() ||
+            return unit.Has<Wizard>() ||
                    unit.Has<SniperAxisQ>() ||
                    unit.Has<SniperAxisR>() ||
                    unit.Has<SniperAxisS>();
