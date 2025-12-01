@@ -8,10 +8,12 @@ namespace Game
     public class DashSystem : System
     {
         private AnimationSystem _animationSystem;
+        private CombatSystem _combatSystem;
 
         public override void Initialize()
         {
             _animationSystem = Systems.Get<AnimationSystem>();
+            _combatSystem = Systems.Get<CombatSystem>();
         }
 
         public override async Task Update()
@@ -24,8 +26,8 @@ namespace Game
             var (from, to) = dasher.Get<Dash>();
 
             // Validate dash destination exists and is traversable
-            var destinationTile = Entities.GetAt(to);
-            if (destinationTile == null || !destinationTile.Has<Traversable>())
+            var tile = Entities.GetAt(to);
+            if (tile == null || !tile.Has<Traversable>())
             {
                 GD.Print($"Dash destination {to} is not traversable!");
                 dasher.Remove<Dash>();
@@ -50,6 +52,32 @@ namespace Game
 
             // Remove dash component
             dasher.Remove<Dash>();
+
+            // Check for enemy attacks if player dashed into enemy range
+            if (dasher.Has<Player>() && dasher.Has<CurrentTurn>())
+            {
+                var destinationTile = Entities.GetAt(to);
+                if (destinationTile != null && destinationTile.Has<AttackRangeTile>())
+                {
+                    int attackerId = destinationTile.Get<AttackRangeTile>();
+                    Entity attacker = Entities.GetEntity(attackerId);
+
+                    if (attacker != null && attacker.Has<Enemy>())
+                    {
+                        GD.Print($"Player dashed into enemy {attackerId} attack range at {to}!");
+                        await _combatSystem.ResolveCombat(attacker, dasher);
+
+                        // Check if player was defeated
+                        if (!dasher.Has<Health>() || dasher.Get<Health>() <= 0)
+                        {
+                            GD.Print("Player defeated by enemy attack after dash!");
+                            Events.OnDashCompleted(dasher, from, to);
+                            Events.UnitActionComplete(dasher);
+                            return;
+                        }
+                    }
+                }
+            }
 
             // Animation system will set back to Idle via DashCompleted event
 

@@ -10,6 +10,7 @@ namespace Game
     public class TileHighlightSystem : System
     {
         private readonly HashSet<Entity> _highlightedTiles = [];
+        private readonly HashSet<Entity> _dashHighlightedTiles = [];
         private StandardMaterial3D _highlightMaterial;
         private StandardMaterial3D _selectedMaterial;
         private StandardMaterial3D _defaultMaterial;
@@ -77,6 +78,14 @@ namespace Game
             if (tile != null &&
                 tile != _selectedTile)
             {
+                var player = Entities.Query<Player>().FirstOrDefault();
+
+                // Don't clear highlights if in dash mode
+                if (player != null && player.Has<DashMode>())
+                {
+                    return;
+                }
+
                 ClearHighlightedTiles();
             }
         }
@@ -85,6 +94,14 @@ namespace Game
         {
             if (unit != null && unit.Has<Unit>())
             {
+                var player = Entities.Query<Player>().FirstOrDefault();
+
+                // Don't clear dash highlights when hovering units
+                if (player != null && player.Has<DashMode>())
+                {
+                    return;
+                }
+
                 // Clear any previous highlights
                 ClearHighlightedTiles();
 

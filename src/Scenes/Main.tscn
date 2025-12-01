@@ -25,11 +25,14 @@ light_energy = 1.458
 light_size = 0.229
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(-0.20696972, -0.7004305, -0.6830525, -0.2136944, -0.6489465, 0.7302076, -0.9547243, 0.2970954, -0.015365795, 1.114695, 25.016983, -12.589458)
-light_color = Color(0.9014527, 0.9410248, 0.7506952, 1)
-light_energy = 0.8
+transform = Transform3D(-0.2069697, -0.7004305, -0.68305254, -0.21369436, -0.6489465, 0.7302077, -0.9547242, 0.2970953, -0.015365783, 9.896456, 25.016983, 20.195755)
+visible = false
+light_color = Color(0.98, 0.98, 0.8624, 1)
+light_energy = 0.6
 light_indirect_energy = 2.0
-light_volumetric_fog_energy = 4.0
+light_volumetric_fog_energy = 3.172
+light_angular_distance = 30.0
+light_specular = 0.1
 shadow_enabled = true
 shadow_bias = 5.868
 shadow_normal_bias = 2.96
@@ -55,3 +58,10 @@ transform = Transform3D(27.189909, 0.071183175, 0, -0.071183175, 27.189909, 0, 0
 material_override = SubResource("StandardMaterial3D_n3v4m")
 lod_bias = 0.001
 mesh = SubResource("PlaneMesh_n3v4m")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.6711922, 0)
+
+[node name="OmniLight3D2" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.954651, 27.341343)
+light_energy = 3.971
