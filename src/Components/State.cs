@@ -7,10 +7,10 @@ namespace Game.Components
     /// </summary>
 
     // State markers
-    public readonly record struct Active;
-    public readonly record struct CurrentTurn;
-    public readonly record struct WaitingForAction;
-    public readonly record struct SelectedTile;
+    public readonly record struct Active();
+    public readonly record struct CurrentTurn();
+    public readonly record struct WaitingForAction();
+    public readonly record struct SelectedTile();
 
     /// <summary>
     /// Turn order component with comparison support for sorting

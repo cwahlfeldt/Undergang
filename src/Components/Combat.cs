@@ -5,8 +5,8 @@ namespace Game.Components
     /// </summary>
 
     // Combat markers
-    public readonly record struct Attacker;
-    public readonly record struct Target;
+    public readonly record struct Attacker();
+    public readonly record struct Target();
 
     // Combat data
     public record struct Health(int Value)

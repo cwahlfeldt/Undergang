@@ -119,7 +119,7 @@ namespace Game
             PathFinder.SetupPathfinding();
 
             unit.Add(new CurrentTurn());
-            unit.Add(new WaitingForAction>();
+            unit.Add(new WaitingForAction());
             Events.OnTurnChanged(unit);  // Notify UI and other systems
         }
     }

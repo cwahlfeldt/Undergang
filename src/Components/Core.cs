@@ -7,9 +7,9 @@ namespace Game.Components
     /// </summary>
 
     // Tile markers
-    public readonly record struct Tile;
-    public readonly record struct Traversable;
-    public readonly record struct Untraversable;
+    public readonly record struct Tile();
+    public readonly record struct Traversable();
+    public readonly record struct Untraversable();
 
     // Data components
     public record struct Instance(Node3D Node)

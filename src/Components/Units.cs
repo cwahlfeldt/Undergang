@@ -5,12 +5,12 @@ namespace Game.Components
     /// </summary>
 
     // Unit classification markers
-    public readonly record struct Player;
-    public readonly record struct Enemy;
+    public readonly record struct Player();
+    public readonly record struct Enemy();
 
     // Enemy type markers
-    public readonly record struct Grunt;
-    public readonly record struct Sniper;
+    public readonly record struct Grunt();
+    public readonly record struct Sniper();
 
     /// <summary>
     /// Unit type component storing the specific unit type

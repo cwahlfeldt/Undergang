@@ -9,26 +9,26 @@ namespace Game.Components
     /// <summary>
     /// Circle pattern: Adjacent tiles (6 hex neighbors)
     /// </summary>
-    public readonly record struct RangeCircle;
+    public readonly record struct RangeCircle();
 
     /// <summary>
     /// Diagonal pattern: Directional lines along 6 hex directions, distance 2-5
     /// (Hoplite Archer behavior)
     /// </summary>
-    public readonly record struct RangeDiagonal;
+    public readonly record struct RangeDiagonal();
 
     /// <summary>
     /// Explosion pattern: All tiles within radius (area of effect)
     /// </summary>
-    public readonly record struct RangeExplosion;
+    public readonly record struct RangeExplosion();
 
     /// <summary>
     /// Hex ring pattern: Tiles exactly N steps away forming a ring
     /// </summary>
-    public readonly record struct RangeHex;
+    public readonly record struct RangeHex();
 
     /// <summary>
     /// N-gon pattern: Alternating directions forming polygon shape
     /// </summary>
-    public readonly record struct RangeNGon;
+    public readonly record struct RangeNGon();
 }
