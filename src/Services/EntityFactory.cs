@@ -133,10 +133,17 @@ namespace Game
         private Entity GetRandomTileEntity()
         {
             var rand = new Random();
+
+            // Get all occupied coordinates (from units that have coordinates)
+            var occupiedCoordinates = _entities.Query<Unit, Coordinate>()
+                .Select(u => u.Get<Coordinate>().Value)
+                .ToHashSet();
+
             var entitiesAwayFromPlayer = _entities.Query<Coordinate>()
                 .Where(e =>
-                    !e.Has<Unit>() &&
+                    e.Has<Tile>() &&
                     e.Has<Traversable>() &&
+                    !occupiedCoordinates.Contains(e.Get<Coordinate>().Value) &&
                     !HexGrid.GetHexesInRange(Config.PlayerStart, Config.PlayerSpawnExclusionRadius).Contains(e.Get<Coordinate>()));
 
             return entitiesAwayFromPlayer

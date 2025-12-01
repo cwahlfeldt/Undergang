@@ -7,8 +7,8 @@ namespace Game
     public partial class Tweener : Node, ISystem
     {
         public static Tweener Instance { get; private set; }
-        private const float DEFAULT_MOVEMENT_DURATION = 0.2f;
-        private const float DEFAULT_ROTATION_DURATION = 0.15f;
+        private const float DEFAULT_MOVEMENT_DURATION = 0.12f;
+        private const float DEFAULT_ROTATION_DURATION = 0.1f;
         private const Tween.TransitionType DEFAULT_TRANS_TYPE = Tween.TransitionType.Sine;
         private const Tween.EaseType DEFAULT_EASE_TYPE = Tween.EaseType.InOut;
         private readonly Dictionary<Node, Tween> _activeTweens = [];

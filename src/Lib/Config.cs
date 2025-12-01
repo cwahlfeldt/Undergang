@@ -8,7 +8,7 @@ public record Config
 
     // Map generation settings
     public static int DefaultMapSize = 5;
-    public static int DefaultBlockedTilesCount = 16;
+    public static int DefaultBlockedTilesCount = 24;
     public static int BlockedTileIndexMin = 20;
     public static int BlockedTileIndexMax = 90;
 
