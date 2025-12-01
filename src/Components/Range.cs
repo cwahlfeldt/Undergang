@@ -31,4 +31,22 @@ namespace Game.Components
     /// N-gon pattern: Alternating directions forming polygon shape
     /// </summary>
     public readonly record struct RangeNGon();
+
+    /// <summary>
+    /// Axis Q pattern: Shoots East-West along q axis (2 opposite directions)
+    /// Distance 2-5 tiles in both directions
+    /// </summary>
+    public readonly record struct RangeAxisQ();
+
+    /// <summary>
+    /// Axis R pattern: Shoots along r axis (2 opposite directions)
+    /// Distance 2-5 tiles in both directions
+    /// </summary>
+    public readonly record struct RangeAxisR();
+
+    /// <summary>
+    /// Axis S pattern: Shoots along s axis (2 opposite directions)
+    /// Distance 2-5 tiles in both directions
+    /// </summary>
+    public readonly record struct RangeAxisS();
 }

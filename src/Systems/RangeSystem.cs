@@ -79,6 +79,15 @@ namespace Game
             if (unit.Has<RangeNGon>())
                 return GetRangeNGon(fromPosition);
 
+            if (unit.Has<RangeAxisQ>())
+                return GetRangeAxisQ(fromPosition);
+
+            if (unit.Has<RangeAxisR>())
+                return GetRangeAxisR(fromPosition);
+
+            if (unit.Has<RangeAxisS>())
+                return GetRangeAxisS(fromPosition);
+
             // Default to empty if no range type
             return Enumerable.Empty<Vector3I>();
         }
@@ -159,6 +168,69 @@ namespace Game
                 {
                     tiles.Add(center + direction * distance);
                 }
+            }
+
+            return tiles;
+        }
+
+        /// <summary>
+        /// Axis Q pattern: Shoots East-West along q axis (2 opposite directions)
+        /// In hex cube coordinates, Q axis is: (+q, 0, -q) and (-q, 0, +q)
+        /// Distance 2-5 tiles in both directions
+        /// </summary>
+        public static IEnumerable<Vector3I> GetRangeAxisQ(Vector3I center)
+        {
+            var tiles = new List<Vector3I>();
+
+            // Q axis directions: East (+q, 0r, -s) and West (-q, 0r, +s)
+            for (int distance = Config.AxisRangeMin; distance <= Config.AxisRangeMax; distance++)
+            {
+                // East: increase q, decrease s, r stays 0
+                tiles.Add(center + new Vector3I(distance, 0, -distance));
+                // West: decrease q, increase s, r stays 0
+                tiles.Add(center + new Vector3I(-distance, 0, distance));
+            }
+
+            return tiles;
+        }
+
+        /// <summary>
+        /// Axis R pattern: Shoots along r axis (2 opposite directions)
+        /// In hex cube coordinates, R axis is: (0, +r, -r) and (0, -r, +r)
+        /// Distance 2-5 tiles in both directions
+        /// </summary>
+        public static IEnumerable<Vector3I> GetRangeAxisR(Vector3I center)
+        {
+            var tiles = new List<Vector3I>();
+
+            // R axis directions: (0q, +r, -s) and (0q, -r, +s)
+            for (int distance = Config.AxisRangeMin; distance <= Config.AxisRangeMax; distance++)
+            {
+                // Increase r, decrease s, q stays 0
+                tiles.Add(center + new Vector3I(0, distance, -distance));
+                // Decrease r, increase s, q stays 0
+                tiles.Add(center + new Vector3I(0, -distance, distance));
+            }
+
+            return tiles;
+        }
+
+        /// <summary>
+        /// Axis S pattern: Shoots along s axis (2 opposite directions)
+        /// In hex cube coordinates, S axis is: (0, +q, -r) and (0, -q, +r)
+        /// Distance 2-5 tiles in both directions
+        /// </summary>
+        public static IEnumerable<Vector3I> GetRangeAxisS(Vector3I center)
+        {
+            var tiles = new List<Vector3I>();
+
+            // S axis directions: (+q, -r, 0s) and (-q, +r, 0s)
+            for (int distance = Config.AxisRangeMin; distance <= Config.AxisRangeMax; distance++)
+            {
+                // Increase q, decrease r, s stays 0
+                tiles.Add(center + new Vector3I(distance, -distance, 0));
+                // Decrease q, increase r, s stays 0
+                tiles.Add(center + new Vector3I(-distance, distance, 0));
             }
 
             return tiles;

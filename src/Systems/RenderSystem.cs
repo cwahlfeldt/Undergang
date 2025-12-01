@@ -51,7 +51,8 @@ namespace Game
 
 				if (entity.Has<Unit>())
 				{
-					var unitScene = ResourceLoader.Load<PackedScene>($"res://src/Scenes/{entity.Get<Unit>()}.tscn");
+					var scenePath = GetUnitScenePath(entity.Get<Unit>());
+					var unitScene = ResourceLoader.Load<PackedScene>(scenePath);
 					var unitSceneInstance = unitScene.Instantiate<Node3D>();
 					var unitInstance = entity.Update(new Instance(unitSceneInstance));
 
@@ -64,6 +65,21 @@ namespace Game
 			}
 
 			Events.OnGridReady(Entities.Query<Tile>());
+		}
+
+		/// <summary>
+		/// Maps unit types to their corresponding scene file paths.
+		/// All sniper variants use the base Sniper.tscn scene.
+		/// </summary>
+		private string GetUnitScenePath(UnitType unitType)
+		{
+			return unitType switch
+			{
+				UnitType.SniperAxisQ => "res://src/Scenes/Sniper.tscn",
+				UnitType.SniperAxisR => "res://src/Scenes/Sniper.tscn",
+				UnitType.SniperAxisS => "res://src/Scenes/Sniper.tscn",
+				_ => $"res://src/Scenes/{unitType}.tscn"
+			};
 		}
 
 		public void SetupTileInput(Entity entity)

@@ -44,9 +44,9 @@ namespace Game
                 // Determine movement target based on enemy type
                 Vector3I targetPosition;
 
-                if (unit.Has<Sniper>())
+                if (IsSniperType(unit))
                 {
-                    targetPosition = FindSniperTargetPosition(enemyCoord, playerCoord, unit.Get<MoveRange>());
+                    targetPosition = FindSniperTargetPosition(unit, enemyCoord, playerCoord, unit.Get<MoveRange>());
                     GD.Print($"Sniper {unit.Id} moves towards ideal position");
                 }
                 else
@@ -61,32 +61,43 @@ namespace Game
         }
 
         /// <summary>
-        /// Find ideal position for Sniper: in range 2-5 of player, closest to range 3
+        /// Check if unit is any sniper variant
+        /// </summary>
+        private bool IsSniperType(Entity unit)
+        {
+            return unit.Has<Sniper>() ||
+                   unit.Has<SniperAxisQ>() ||
+                   unit.Has<SniperAxisR>() ||
+                   unit.Has<SniperAxisS>();
+        }
+
+        /// <summary>
+        /// Find ideal position for Sniper: in their attack range of player, closest to range 3
         /// Based on Hoplite Archer AI behavior
         /// </summary>
-        private Vector3I FindSniperTargetPosition(Vector3I sniperCoord, Vector3I playerCoord, int moveRange)
+        private Vector3I FindSniperTargetPosition(Entity sniper, Vector3I sniperCoord, Vector3I playerCoord, int moveRange)
         {
-            // Get all tiles in the 6 directions from player at range 2-5
+            // Get all tiles that would be in this sniper's attack range from the player's position
+            // This uses the sniper's specific range pattern (diagonal, axis Q/R/S, etc.)
             var idealPositions = new List<Vector3I>();
 
-            foreach (var direction in HexGrid.Directions.Values)
+            // Get the sniper's attack range pattern from player's perspective
+            // We want positions where if the sniper stood there, the player would be in range
+            var potentialAttackRangeTiles = RangeSystem.GetAttackRangeTiles(sniper, playerCoord);
+
+            foreach (var position in potentialAttackRangeTiles)
             {
-                for (int distance = 2; distance <= 5; distance++)
+                // Check if tile exists and is traversable
+                var tile = Entities.GetAt(position);
+                if (tile != null && tile.Has<Traversable>())
                 {
-                    var position = playerCoord + direction * distance;
+                    // Check if tile is not occupied by another unit
+                    var occupant = Entities.Query<Unit, Coordinate>()
+                        .FirstOrDefault(u => u.Get<Coordinate>() == position);
 
-                    // Check if tile exists and is traversable
-                    var tile = Entities.GetAt(position);
-                    if (tile != null && tile.Has<Traversable>())
+                    if (occupant == null)
                     {
-                        // Check if tile is not occupied by another unit
-                        var occupant = Entities.Query<Unit, Coordinate>()
-                            .FirstOrDefault(u => u.Get<Coordinate>() == position);
-
-                        if (occupant == null)
-                        {
-                            idealPositions.Add(position);
-                        }
+                        idealPositions.Add(position);
                     }
                 }
             }

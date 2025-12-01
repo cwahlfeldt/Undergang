@@ -51,17 +51,18 @@ height = 1.49524
 [node name="Enemy" type="Area3D" groups=["Enemy"]]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
 
+[node name="Skeleton_Rogue" parent="." instance=ExtResource("2_ud6lc")]
+transform = Transform3D(-0.711, 0, 1.0735803e-07, 0, 0.711, 0, -1.0735803e-07, 0, -0.711, 0.034920003, -6.0021877e-05, -0.033660002)
+
 [node name="Mesh" type="Node3D" parent="."]
 transform = Transform3D(0.18, 0, 0, 0, 0.18, 0, 0, 0, 0.18, 0, 0.84, 0)
+visible = false
 
 [node name="OmegaXD_OmegaXD_0" type="MeshInstance3D" parent="Mesh"]
 visible = false
 mesh = SubResource("ArrayMesh_ywtus")
 skeleton = NodePath("")
 surface_material_override/0 = SubResource("StandardMaterial3D_opvld")
-
-[node name="Skeleton_Rogue" parent="Mesh" instance=ExtResource("2_ud6lc")]
-transform = Transform3D(-3.95, 0, 5.9643344e-07, 0, 3.95, 0, -5.9643344e-07, 0, -3.95, 0.194, -4.667, -0.187)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.800174, 0)

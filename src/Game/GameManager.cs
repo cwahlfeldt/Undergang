@@ -33,7 +33,11 @@ namespace Game
 			entityManager.Factory.CreatePlayer();
 			entityManager.Factory.CreateEnemy(UnitType.Grunt);
 			entityManager.Factory.CreateEnemy(UnitType.Grunt);
-			entityManager.Factory.CreateEnemy(UnitType.Sniper);
+			entityManager.Factory.CreateEnemy(UnitType.SniperAxisQ);
+			entityManager.Factory.CreateEnemy(UnitType.SniperAxisR);
+			entityManager.Factory.CreateEnemy(UnitType.SniperAxisS);
+
+
 
 			_systems.Initialize();
 		}

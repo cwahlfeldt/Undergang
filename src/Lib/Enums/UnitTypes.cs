@@ -3,5 +3,8 @@ public enum UnitType
     Player,
     Enemy,
     Grunt,
-    Sniper
+    Sniper,
+    SniperAxisQ,
+    SniperAxisR,
+    SniperAxisS
 }

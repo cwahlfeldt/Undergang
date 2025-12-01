@@ -1,20 +1,15 @@
 [gd_scene load_steps=3 format=3 uid="uid://dooip7hir4st8"]
 
 [ext_resource type="PackedScene" uid="uid://buekuqohkjb4l" path="res://src/Scenes/Board.tscn" id="1_fca0k"]
-[ext_resource type="Script" path="res://src/Services/LightingManager.cs" id="2_lighting"]
+[ext_resource type="Script" uid="uid://ds2v84eixtb2k" path="res://src/Services/LightingManager.cs" id="2_lighting"]
 
 [node name="Main" type="Node3D"]
 
 [node name="LightingManager" type="Node3D" parent="."]
 script = ExtResource("2_lighting")
-EnableSSAO = true
-EnableSSIL = true
-EnableGlow = true
-GlobalLightingIntensity = 1.0
 AmbientLightEnergy = 0.4
 SunEnergy = 1.8
 SunAngleX = 50.0
-SunAngleY = -45.0
 
 [node name="GameManager" parent="." instance=ExtResource("1_fca0k")]
 
@@ -37,7 +32,7 @@ directional_shadow_max_distance = 109.4
 directional_shadow_pancake_size = 24.5
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(0.965926, -0.1663656, 0.19826679, 0, 0.76604396, 0.642788, -0.25881895, -0.62088513, 0.73994213, 0, 13, 0)
+transform = Transform3D(0.9659259, -0.16636564, 0.19826674, 0, 0.76604426, 0.6427878, -0.25881892, -0.6208854, 0.73994195, 3.4548817, 13, -0.8400459)
 h_offset = -5.0
 v_offset = -10.0
 projection = 1

@@ -17,4 +17,6 @@ public record Config
     public static int DiagonalRangeMax = 5;
     public static int HexRingDistance = 2;
     public static int ExplosionRadius = 2;
+    public static int AxisRangeMin = 2;
+    public static int AxisRangeMax = 5;
 }
