@@ -69,7 +69,7 @@ namespace Game
             {
                 var player = Entities.Query<Player>().FirstOrDefault();
 
-                if (player.Has<CurrentTurn>())
+                if (player != null && player.Has<CurrentTurn>())
                 {
                     // Check if player is in dash mode
                     if (player.Has<DashModeActive>())

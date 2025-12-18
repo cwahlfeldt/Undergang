@@ -4,25 +4,25 @@ public record Config
 {
     // Player settings
     public static Vector3I PlayerStart = new(0, 4, -4);
-    public static int PlayerSpawnExclusionRadius = 3;
+    public const int PlayerSpawnExclusionRadius = 3;
 
     // Map generation settings
-    public static int DefaultMapSize = 5;
-    public static int DefaultBlockedTilesCount = 24;
-    public static int BlockedTileIndexMin = 20;
-    public static int BlockedTileIndexMax = 90;
+    public const int DefaultMapSize = 5;
+    public const int DefaultBlockedTilesCount = 24;
+    public const int BlockedTileIndexMin = 20;
+    public const int BlockedTileIndexMax = 90;
 
     // Range settings
-    public static int DiagonalRangeMin = 2;
-    public static int DiagonalRangeMax = 6;
-    public static int HexRingDistance = 2;
-    public static int ExplosionRadius = 2;
-    public static int AxisRangeMin = 2;
-    public static int AxisRangeMax = 5;
+    public const int DiagonalRangeMin = 2;
+    public const int DiagonalRangeMax = 6;
+    public const int HexRingDistance = 2;
+    public const int ExplosionRadius = 2;
+    public const int AxisRangeMin = 2;
+    public const int AxisRangeMax = 5;
 
     // Dash ability settings
-    public static int DashRange = 2;
-    public static int DashCooldown = 3;
-    public static float DashAnimationSpeed = 0.25f;
-    public static float NormalMoveAnimationSpeed = 0.5f;
+    public const int DashRange = 2;
+    public const int DashCooldown = 3;
+    public const float DashAnimationSpeed = 0.25f;
+    public const float NormalMoveAnimationSpeed = 0.5f;
 }
