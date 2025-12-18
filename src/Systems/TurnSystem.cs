@@ -96,6 +96,14 @@ namespace Game
 
         private void AdvanceToNextUnit()
         {
+            // Check if player is dead - if so, stop turn cycle
+            var player = Entities.Query<Player>().FirstOrDefault();
+            if (player != null && player.Has<Health>() && player.Get<Health>() <= 0)
+            {
+                // Player is dead - game over, don't advance turns
+                return;
+            }
+
             var allUnits = Entities.Query<TurnOrder>()
                 .OrderBy(e => e.Get<TurnOrder>())
                 .ToList();

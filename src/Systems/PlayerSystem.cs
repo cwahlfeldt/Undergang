@@ -24,6 +24,10 @@ namespace Game
             if (player == null || !player.Has<WaitingForAction>())
                 return;
 
+            // Don't allow player actions if they're dead
+            if (player.Has<Health>() && player.Get<Health>() <= 0)
+                return;
+
             if (!tile.Has<Tile>() || !tile.Has<Traversable>())
                 return;
 

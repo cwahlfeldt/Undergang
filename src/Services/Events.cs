@@ -22,6 +22,7 @@ namespace Game
         public event Action<Entity> OnUnitActionComplete;
         public event Action<IEnumerable<Entity>> GridReady;
         public event Action<int, Type, object> ComponentChanged;
+        public event Action GameOver;
 
         public static Events Instance { get; private set; }
 
@@ -103,6 +104,11 @@ namespace Game
         public void OnEntityRightClick(Entity entity)
         {
             EntityRightClick?.Invoke(entity);
+        }
+
+        public void OnGameOver()
+        {
+            GameOver?.Invoke();
         }
     }
 }

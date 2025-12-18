@@ -64,8 +64,9 @@ namespace Game
 			// Apply damage after animation
 			if (newHealth <= 0)
 			{
-				// Defender is defeated
-					Events.OnUnitDefeated(defender);
+				// Defender is defeated - set health to 0 first so checks work properly
+				defender.Update(new Health(0));
+				Events.OnUnitDefeated(defender);
 			}
 			else
 			{
@@ -96,7 +97,19 @@ namespace Game
 		{
 			if (unit == null) return;
 
-				// Remove visual representation
+			// Check if this is the player
+			if (unit.Has<Player>())
+			{
+				// Player defeated - trigger game over
+				// Death animation is already playing from AnimationSystem
+				Events.OnGameOver();
+
+				// Don't remove the player - let them stay visible in death animation
+				return;
+			}
+
+			// For enemies, remove them as normal
+			// Remove visual representation
 			if (unit.Has<Instance>())
 			{
 				var instance = unit.Get<Instance>();

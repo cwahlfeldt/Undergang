@@ -10,6 +10,7 @@ namespace Game
 		public override void _Ready()
 		{
 			Events.Instance.TurnChanged += OnTurnChanged;
+			Events.Instance.GameOver += OnGameOver;
 
 			_systems = new Systems(this);
 
@@ -45,6 +46,13 @@ namespace Game
 		private async void OnTurnChanged(Entity entity)
 		{
 			await _systems.Update();
+		}
+
+		private void OnGameOver()
+		{
+			GD.Print("=== GAME OVER ===");
+			GD.Print("The player has been defeated!");
+			// TODO: Show game over UI, restart option, etc.
 		}
 	}
 }
