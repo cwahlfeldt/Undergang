@@ -1,8 +1,0 @@
-[
-  {
-    "label": "Run Godot Game",
-    "command": "dotnet build && godot-mono --position 1900,400 .",
-    "allow_concurrent_runs": true,
-    "reveal": "never"
-  }
-]
