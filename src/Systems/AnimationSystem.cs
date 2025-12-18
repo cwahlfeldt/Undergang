@@ -58,11 +58,11 @@ namespace Game
         /// e.g., "Player_Idle", "Grunt_Attack", "Sniper_Move"
         ///
         /// Special handling for Player unit with library-based animations:
-        /// - Spawn -> "Player/Spawn_Ground"
-        /// - Idle -> "Player/Idle_B"
-        /// - Attack -> "Player/Slash_A" (if exists)
-        /// - Hurt -> "Player/Hit_A"
-        /// - Die -> "Player/Death_A"
+        /// - Spawn -> "Character/Spawn_Ground"
+        /// - Idle -> "Character/Idle_B"
+        /// - Attack -> "Character/Slash_A" (if exists)
+        /// - Hurt -> "Character/Hit_A"
+        /// - Die -> "Character/Death_A"
         /// </summary>
         private void PlayAnimation(Entity unit, AnimationState state)
         {
@@ -95,13 +95,13 @@ namespace Game
             {
                 var animationName = state switch
                 {
-                    AnimationState.Spawn => "Player/Spawn_Ground",
-                    AnimationState.Idle => "Player/Idle_B",
-                    AnimationState.Attack => "Player/Interact",  // Fallback to Interact until Slash is added
-                    AnimationState.Hurt => "Player/Hit_A",
-                    AnimationState.Die => "Player/Death_A",
-                    AnimationState.Move => "Player/Idle_B",      // Fallback to Idle until Walk is added
-                    _ => $"Player/{state}_A"
+                    AnimationState.Spawn => "Character/Spawn_Air",
+                    AnimationState.Idle => "Character/Idle_B",
+                    AnimationState.Attack => "Character/Interact",  // Fallback to Interact until Slash is added
+                    AnimationState.Hurt => "Character/Hit_A",
+                    AnimationState.Die => "Character/Death_A",
+                    AnimationState.Move => "Character/Idle_B",      // Fallback to Idle until Walk is added
+                    _ => $"Character/{state}_A"
                 };
 
                 if (animationPlayer.HasAnimation(animationName))
@@ -169,7 +169,7 @@ namespace Game
             if (animationPlayer != null)
             {
                 var unitType = unit.Get<Unit>().Type;
-                var animationName = unitType == UnitType.Player ? "Player/Spawn_Ground" : $"{unitType}_Spawn";
+                var animationName = unitType == UnitType.Player ? "Character/Spawn_Ground" : $"{unitType}_Spawn";
 
                 if (animationPlayer.HasAnimation(animationName))
                 {
