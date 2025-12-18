@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://da6kx4g45r18p"]
 
-[ext_resource type="PackedScene" uid="uid://bmbtbjj14cgs4" path="res://assets/models/environment/hex_grass.gltf" id="2_l2yqe"]
+[ext_resource type="PackedScene" uid="uid://c0b57810wc1bp" path="res://assets/models/environment/hex_grass.gltf" id="2_l2yqe"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_a62jo"]
 height = 0.7

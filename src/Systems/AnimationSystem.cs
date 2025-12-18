@@ -17,10 +17,10 @@ namespace Game
             Events.MoveCompleted += OnMoveCompleted;
             Events.UnitDefeated += OnUnitDefeated;
 
-            // Set all units to Idle state initially
+            // Play spawn animation for all units (fire and forget - will auto-transition to Idle)
             foreach (var unit in Entities.Query<Unit, Instance>())
             {
-                SetAnimationState(unit, AnimationState.Idle);
+                _ = PlaySpawnAnimationAsync(unit);
             }
         }
 
@@ -58,8 +58,8 @@ namespace Game
         /// e.g., "Player_Idle", "Grunt_Attack", "Sniper_Move"
         ///
         /// Special handling for Player unit with library-based animations:
-        /// - Spawn -> "Player/Spawn_Air"
-        /// - Idle -> "Player/Idle_A"
+        /// - Spawn -> "Player/Spawn_Ground"
+        /// - Idle -> "Player/Idle_B"
         /// - Attack -> "Player/Slash_A" (if exists)
         /// - Hurt -> "Player/Hit_A"
         /// - Die -> "Player/Death_A"
@@ -68,7 +68,8 @@ namespace Game
         {
             // Get the AnimationPlayer node from the unit's scene
             var unitNode = unit.Get<Instance>().Node;
-            var animationPlayer = unitNode.GetNodeOrNull<Godot.AnimationPlayer>("AnimationPlayer");
+            var animationPlayer = unitNode.GetNodeOrNull<Godot.AnimationPlayer>("AnimationPlayer")
+                ?? unitNode.GetNodeOrNull<Godot.AnimationPlayer>("Knight/AnimationPlayer");
 
             if (animationPlayer == null)
             {
@@ -86,22 +87,31 @@ namespace Game
             // Build animation name based on unit type and state
             var unitType = unit.Get<Unit>().Type;
 
+            // Determine if animation should loop (Idle should always loop)
+            bool shouldLoop = state == AnimationState.Idle;
+
             // Special handling for Player with library-based animations
             if (unitType == UnitType.Player)
             {
                 var animationName = state switch
                 {
-                    AnimationState.Spawn => "Player/Spawn_Air",
-                    AnimationState.Idle => "Player/Idle_A",
-                    AnimationState.Attack => "Player/Slash_A",
+                    AnimationState.Spawn => "Player/Spawn_Ground",
+                    AnimationState.Idle => "Player/Idle_B",
+                    AnimationState.Attack => "Player/Interact",  // Fallback to Interact until Slash is added
                     AnimationState.Hurt => "Player/Hit_A",
                     AnimationState.Die => "Player/Death_A",
-                    AnimationState.Move => "Player/Walk_A",
+                    AnimationState.Move => "Player/Idle_B",      // Fallback to Idle until Walk is added
                     _ => $"Player/{state}_A"
                 };
 
                 if (animationPlayer.HasAnimation(animationName))
                 {
+                    // Set loop mode for the animation
+                    var animation = animationPlayer.GetAnimation(animationName);
+                    animation.LoopMode = shouldLoop
+                        ? Godot.Animation.LoopModeEnum.Linear
+                        : Godot.Animation.LoopModeEnum.None;
+
                     animationPlayer.Play(animationName);
                     return;
                 }
@@ -116,6 +126,11 @@ namespace Game
                 // Fallback to generic state name if unit-specific doesn't exist
                 if (animationPlayer.HasAnimation(state.ToString()))
                 {
+                    var animation = animationPlayer.GetAnimation(state.ToString());
+                    animation.LoopMode = shouldLoop
+                        ? Godot.Animation.LoopModeEnum.Linear
+                        : Godot.Animation.LoopModeEnum.None;
+
                     animationPlayer.Play(state.ToString());
                 }
                 else
@@ -125,8 +140,65 @@ namespace Game
                 return;
             }
 
-            // Play the animation
+            // Set loop mode and play the animation
+            var standardAnimation = animationPlayer.GetAnimation(standardAnimationName);
+            standardAnimation.LoopMode = shouldLoop
+                ? Godot.Animation.LoopModeEnum.Linear
+                : Godot.Animation.LoopModeEnum.None;
+
             animationPlayer.Play(standardAnimationName);
+        }
+
+        /// <summary>
+        /// Plays spawn animation for a unit, then transitions to Idle after animation completes
+        /// Uses Godot's animation_finished signal to avoid blocking
+        /// </summary>
+        private async Task PlaySpawnAnimationAsync(Entity unit)
+        {
+            if (!unit.Has<Unit>())
+                return;
+
+            // Set to Spawn state and play animation
+            SetAnimationState(unit, AnimationState.Spawn);
+
+            // Get animation player
+            var animationPlayer = unit.Has<Components.AnimationPlayer>()
+                ? unit.Get<Components.AnimationPlayer>().Player
+                : null;
+
+            if (animationPlayer != null)
+            {
+                var unitType = unit.Get<Unit>().Type;
+                var animationName = unitType == UnitType.Player ? "Player/Spawn_Ground" : $"{unitType}_Spawn";
+
+                if (animationPlayer.HasAnimation(animationName))
+                {
+                    // Wait for spawn animation to complete using Godot's signal
+                    var tcs = new TaskCompletionSource<bool>();
+                    void OnAnimationFinished(StringName anim)
+                    {
+                        animationPlayer.AnimationFinished -= OnAnimationFinished;
+                        tcs.SetResult(true);
+                    }
+                    animationPlayer.AnimationFinished += OnAnimationFinished;
+                    await tcs.Task;
+                }
+                else
+                {
+                    // No spawn animation exists, immediately transition to Idle
+                    SetAnimationState(unit, AnimationState.Idle);
+                    return;
+                }
+            }
+            else
+            {
+                // No animation player, immediately transition to Idle
+                SetAnimationState(unit, AnimationState.Idle);
+                return;
+            }
+
+            // Transition to Idle state after animation completes
+            SetAnimationState(unit, AnimationState.Idle);
         }
 
         /// <summary>

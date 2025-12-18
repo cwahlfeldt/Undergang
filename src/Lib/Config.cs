@@ -24,5 +24,5 @@ public record Config
     public const int DashRange = 2;
     public const int DashCooldown = 3;
     public const float DashAnimationSpeed = 0.25f;
-    public const float NormalMoveAnimationSpeed = 0.5f;
+    public const float NormalMoveAnimationSpeed = 0.25f;
 }
