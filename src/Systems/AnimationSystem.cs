@@ -24,7 +24,7 @@ namespace Game
                 {
                     { AnimationState.Spawn, "Character/Spawn_Air" },
                     { AnimationState.Idle, "Character/Idle_B" },
-                    { AnimationState.Move, "Character/Idle_B" },  // Fallback until Walk is added
+                    { AnimationState.Move, "Movement/Running_A" },  // Running animation from Movement library
                     { AnimationState.Attack, "Character/Interact" },  // Fallback until Slash is added
                     { AnimationState.Hurt, "Character/Hit_A" },
                     { AnimationState.Die, "Character/Death_A" },
@@ -136,7 +136,7 @@ namespace Game
             }
 
             var unitType = unit.Get<Unit>().Type;
-            bool shouldLoop = state == AnimationState.Idle;
+            bool shouldLoop = state == AnimationState.Idle || state == AnimationState.Move;
 
             // Try to get animation name, attempting multiple resolution strategies
             string animationName = GetAnimationName(unitType, state, animationPlayer);
