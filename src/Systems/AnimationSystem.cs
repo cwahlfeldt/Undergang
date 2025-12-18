@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Game.Components;
@@ -7,10 +8,31 @@ namespace Game
 {
     /// <summary>
     /// System responsible for managing unit animations based on their state
-    /// Animations are organized per-unit-type (Player, Grunt, Sniper, etc.)
+    /// Supports both standard naming convention and custom animation mappings
     /// </summary>
     public class AnimationSystem : System
     {
+        /// <summary>
+        /// Maps unit types to their custom animation naming schemes
+        /// If a unit type is not in this map, it uses the standard pattern: "{UnitType}_{AnimationState}"
+        /// </summary>
+        private readonly Dictionary<UnitType, Dictionary<AnimationState, string>> _animationMappings = new()
+        {
+            // Player uses library-based animations with custom names
+            {
+                UnitType.Player, new Dictionary<AnimationState, string>
+                {
+                    { AnimationState.Spawn, "Character/Spawn_Air" },
+                    { AnimationState.Idle, "Character/Idle_B" },
+                    { AnimationState.Move, "Character/Idle_B" },  // Fallback until Walk is added
+                    { AnimationState.Attack, "Character/Interact" },  // Fallback until Slash is added
+                    { AnimationState.Hurt, "Character/Hit_A" },
+                    { AnimationState.Die, "Character/Death_A" },
+                }
+            }
+            // Add more unit types here as needed, e.g.:
+            // { UnitType.Grunt, new Dictionary<AnimationState, string> { ... } }
+        };
         public override void Initialize()
         {
             // Subscribe to events that should trigger animations
@@ -22,6 +44,38 @@ namespace Game
             {
                 _ = PlaySpawnAnimationAsync(unit);
             }
+        }
+
+        /// <summary>
+        /// Registers a custom animation mapping for a specific unit type
+        /// This allows you to override the default naming convention with custom animation names
+        /// </summary>
+        /// <example>
+        /// RegisterCustomAnimation(UnitType.Grunt, AnimationState.Attack, "GruntSpecialAttack");
+        /// </example>
+        public void RegisterCustomAnimation(UnitType unitType, AnimationState state, string animationName)
+        {
+            if (!_animationMappings.TryGetValue(unitType, out var mapping))
+            {
+                mapping = [];
+                _animationMappings[unitType] = mapping;
+            }
+            mapping[state] = animationName;
+        }
+
+        /// <summary>
+        /// Registers multiple custom animation mappings for a unit type at once
+        /// </summary>
+        /// <example>
+        /// RegisterCustomAnimations(UnitType.Sniper, new Dictionary&lt;AnimationState, string&gt;
+        /// {
+        ///     { AnimationState.Idle, "Sniper/StandReady" },
+        ///     { AnimationState.Attack, "Sniper/Shoot" }
+        /// });
+        /// </example>
+        public void RegisterCustomAnimations(UnitType unitType, Dictionary<AnimationState, string> animations)
+        {
+            _animationMappings[unitType] = animations;
         }
 
         public override async Task Update()
@@ -54,15 +108,12 @@ namespace Game
 
         /// <summary>
         /// Plays an animation for the given unit and state
-        /// Animation names follow the pattern: "{UnitType}_{AnimationState}"
-        /// e.g., "Player_Idle", "Grunt_Attack", "Sniper_Move"
         ///
-        /// Special handling for Player unit with library-based animations:
-        /// - Spawn -> "Character/Spawn_Ground"
-        /// - Idle -> "Character/Idle_B"
-        /// - Attack -> "Character/Slash_A" (if exists)
-        /// - Hurt -> "Character/Hit_A"
-        /// - Die -> "Character/Death_A"
+        /// Animation resolution order:
+        /// 1. Custom mapping from _animationMappings dictionary (if defined for unit type)
+        /// 2. Standard pattern: "{UnitType}_{AnimationState}" (e.g., "Grunt_Attack")
+        /// 3. Generic state name fallback (e.g., "Attack")
+        /// 4. Graceful degradation if no animation found
         /// </summary>
         private void PlayAnimation(Entity unit, AnimationState state)
         {
@@ -84,69 +135,53 @@ namespace Game
                 unit.Add(new Components.AnimationPlayer(animationPlayer));
             }
 
-            // Build animation name based on unit type and state
             var unitType = unit.Get<Unit>().Type;
-
-            // Determine if animation should loop (Idle should always loop)
             bool shouldLoop = state == AnimationState.Idle;
 
-            // Special handling for Player with library-based animations
-            if (unitType == UnitType.Player)
+            // Try to get animation name, attempting multiple resolution strategies
+            string animationName = GetAnimationName(unitType, state, animationPlayer);
+
+            if (animationName != null)
             {
-                var animationName = state switch
-                {
-                    AnimationState.Spawn => "Character/Spawn_Air",
-                    AnimationState.Idle => "Character/Idle_B",
-                    AnimationState.Attack => "Character/Interact",  // Fallback to Interact until Slash is added
-                    AnimationState.Hurt => "Character/Hit_A",
-                    AnimationState.Die => "Character/Death_A",
-                    AnimationState.Move => "Character/Idle_B",      // Fallback to Idle until Walk is added
-                    _ => $"Character/{state}_A"
-                };
+                // Set loop mode for the animation
+                var animation = animationPlayer.GetAnimation(animationName);
+                animation.LoopMode = shouldLoop
+                    ? Godot.Animation.LoopModeEnum.Linear
+                    : Godot.Animation.LoopModeEnum.None;
 
-                if (animationPlayer.HasAnimation(animationName))
-                {
-                    // Set loop mode for the animation
-                    var animation = animationPlayer.GetAnimation(animationName);
-                    animation.LoopMode = shouldLoop
-                        ? Godot.Animation.LoopModeEnum.Linear
-                        : Godot.Animation.LoopModeEnum.None;
+                animationPlayer.Play(animationName);
+            }
+            // If no animation found, silently continue (graceful degradation)
+        }
 
-                    animationPlayer.Play(animationName);
-                    return;
+        /// <summary>
+        /// Resolves the animation name for a given unit type and state
+        /// Tries multiple strategies in order of priority
+        /// </summary>
+        private string GetAnimationName(UnitType unitType, AnimationState state, Godot.AnimationPlayer animationPlayer)
+        {
+            // Strategy 1: Check custom mappings
+            if (_animationMappings.TryGetValue(unitType, out var customMapping))
+            {
+                if (customMapping.TryGetValue(state, out var customName))
+                {
+                    if (animationPlayer.HasAnimation(customName))
+                        return customName;
                 }
             }
 
-            // Standard pattern: {UnitType}_{AnimationState}
-            var standardAnimationName = $"{unitType}_{state}";
+            // Strategy 2: Standard pattern "{UnitType}_{AnimationState}"
+            var standardName = $"{unitType}_{state}";
+            if (animationPlayer.HasAnimation(standardName))
+                return standardName;
 
-            // Check if animation exists
-            if (!animationPlayer.HasAnimation(standardAnimationName))
-            {
-                // Fallback to generic state name if unit-specific doesn't exist
-                if (animationPlayer.HasAnimation(state.ToString()))
-                {
-                    var animation = animationPlayer.GetAnimation(state.ToString());
-                    animation.LoopMode = shouldLoop
-                        ? Godot.Animation.LoopModeEnum.Linear
-                        : Godot.Animation.LoopModeEnum.None;
+            // Strategy 3: Generic state name fallback
+            var genericName = state.ToString();
+            if (animationPlayer.HasAnimation(genericName))
+                return genericName;
 
-                    animationPlayer.Play(state.ToString());
-                }
-                else
-                {
-                    // Animation not found - this is expected during development
-                }
-                return;
-            }
-
-            // Set loop mode and play the animation
-            var standardAnimation = animationPlayer.GetAnimation(standardAnimationName);
-            standardAnimation.LoopMode = shouldLoop
-                ? Godot.Animation.LoopModeEnum.Linear
-                : Godot.Animation.LoopModeEnum.None;
-
-            animationPlayer.Play(standardAnimationName);
+            // No animation found
+            return null;
         }
 
         /// <summary>
@@ -169,9 +204,9 @@ namespace Game
             if (animationPlayer != null)
             {
                 var unitType = unit.Get<Unit>().Type;
-                var animationName = unitType == UnitType.Player ? "Character/Spawn_Ground" : $"{unitType}_Spawn";
+                var animationName = GetAnimationName(unitType, AnimationState.Spawn, animationPlayer);
 
-                if (animationPlayer.HasAnimation(animationName))
+                if (animationName != null)
                 {
                     // Wait for spawn animation to complete using Godot's signal
                     var tcs = new TaskCompletionSource<bool>();
@@ -220,15 +255,24 @@ namespace Game
                 ? attacker.Get<Components.AnimationPlayer>().Player
                 : null;
 
-            if (attackerPlayer != null && attackerPlayer.HasAnimation($"{attacker.Get<Unit>().Type}_Attack"))
+            if (attackerPlayer != null)
             {
-                // Wait for attack animation to complete
-                var attackDuration = attackerPlayer.GetAnimation($"{attacker.Get<Unit>().Type}_Attack").Length;
-                await Task.Delay((int)(attackDuration * 1000));
+                var attackAnimName = GetAnimationName(attacker.Get<Unit>().Type, AnimationState.Attack, attackerPlayer);
+                if (attackAnimName != null)
+                {
+                    // Wait for attack animation to complete
+                    var attackDuration = attackerPlayer.GetAnimation(attackAnimName).Length;
+                    await Task.Delay((int)(attackDuration * 1000));
+                }
+                else
+                {
+                    // Fallback duration if no animation
+                    await Task.Delay(300);
+                }
             }
             else
             {
-                // Fallback duration if no animation
+                // Fallback duration if no animation player
                 await Task.Delay(300);
             }
 
