@@ -56,6 +56,13 @@ namespace Game
         /// Plays an animation for the given unit and state
         /// Animation names follow the pattern: "{UnitType}_{AnimationState}"
         /// e.g., "Player_Idle", "Grunt_Attack", "Sniper_Move"
+        ///
+        /// Special handling for Player unit with library-based animations:
+        /// - Spawn -> "Player/Spawn_Air"
+        /// - Idle -> "Player/Idle_A"
+        /// - Attack -> "Player/Slash_A" (if exists)
+        /// - Hurt -> "Player/Hit_A"
+        /// - Die -> "Player/Death_A"
         /// </summary>
         private void PlayAnimation(Entity unit, AnimationState state)
         {
@@ -78,10 +85,33 @@ namespace Game
 
             // Build animation name based on unit type and state
             var unitType = unit.Get<Unit>().Type;
-            var animationName = $"{unitType}_{state}";
+
+            // Special handling for Player with library-based animations
+            if (unitType == UnitType.Player)
+            {
+                var animationName = state switch
+                {
+                    AnimationState.Spawn => "Player/Spawn_Air",
+                    AnimationState.Idle => "Player/Idle_A",
+                    AnimationState.Attack => "Player/Slash_A",
+                    AnimationState.Hurt => "Player/Hit_A",
+                    AnimationState.Die => "Player/Death_A",
+                    AnimationState.Move => "Player/Walk_A",
+                    _ => $"Player/{state}_A"
+                };
+
+                if (animationPlayer.HasAnimation(animationName))
+                {
+                    animationPlayer.Play(animationName);
+                    return;
+                }
+            }
+
+            // Standard pattern: {UnitType}_{AnimationState}
+            var standardAnimationName = $"{unitType}_{state}";
 
             // Check if animation exists
-            if (!animationPlayer.HasAnimation(animationName))
+            if (!animationPlayer.HasAnimation(standardAnimationName))
             {
                 // Fallback to generic state name if unit-specific doesn't exist
                 if (animationPlayer.HasAnimation(state.ToString()))
@@ -96,7 +126,7 @@ namespace Game
             }
 
             // Play the animation
-            animationPlayer.Play(animationName);
+            animationPlayer.Play(standardAnimationName);
         }
 
         /// <summary>

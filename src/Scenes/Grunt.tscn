@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://dqwcyy4b4vn7l"]
 
-[ext_resource type="PackedScene" uid="uid://dcygxpe53vyl5" path="res://assets/models/Skeleton_Minion.glb" id="1_5qudi"]
+[ext_resource type="PackedScene" uid="uid://dcygxpe53vyl5" path="res://assets/models/characters/Skeleton_Minion/Skeleton_Minion.glb" id="1_5qudi"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_qrunm"]
 height = 1.56693

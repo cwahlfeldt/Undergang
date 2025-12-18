@@ -1,0 +1,97 @@
+[gd_scene load_steps=18 format=3 uid="uid://d2gklntr1yis2"]
+
+[ext_resource type="PackedScene" uid="uid://cjk0jqjaotpjc" path="res://assets/models/characters/Knight/Knight.glb" id="1_7lh1p"]
+[ext_resource type="Animation" uid="uid://bjegyedd6rrhm" path="res://assets/models/animations/General/Death_A.res" id="2_mft2j"]
+[ext_resource type="Animation" uid="uid://nkw2hys2xx6w" path="res://assets/models/animations/General/Death_A_Pose.res" id="3_k3ch3"]
+[ext_resource type="Animation" uid="uid://vkyhrois74uj" path="res://assets/models/animations/General/Death_B.res" id="4_melbt"]
+[ext_resource type="Animation" uid="uid://c628w3unx3icj" path="res://assets/models/animations/General/Death_B_Pose.res" id="5_1r4qc"]
+[ext_resource type="Animation" uid="uid://d2ps6fsl0ynqs" path="res://assets/models/animations/General/Hit_A.res" id="6_xao12"]
+[ext_resource type="Animation" uid="uid://cp35qwtryja1n" path="res://assets/models/animations/General/Hit_B.res" id="7_cgnof"]
+[ext_resource type="Animation" uid="uid://di2gihoq5a33m" path="res://assets/models/animations/General/Idle_A.res" id="8_kj3hj"]
+[ext_resource type="Animation" uid="uid://dm8mnqhqm211e" path="res://assets/models/animations/General/Idle_B.res" id="9_7kff8"]
+[ext_resource type="Animation" uid="uid://ca6pokwb7hg0w" path="res://assets/models/animations/General/Interact.res" id="10_m8445"]
+[ext_resource type="Animation" uid="uid://h2i5k43f1toa" path="res://assets/models/animations/General/PickUp.res" id="11_7o1ef"]
+[ext_resource type="Animation" uid="uid://b1n6b71ksuio5" path="res://assets/models/animations/General/Spawn_Air.res" id="12_3stmg"]
+[ext_resource type="Animation" uid="uid://1630nlh58x3y" path="res://assets/models/animations/General/Spawn_Ground.res" id="13_u4bvy"]
+[ext_resource type="Animation" uid="uid://d0tnw168uejjw" path="res://assets/models/animations/General/T-Pose.res" id="14_og2mv"]
+[ext_resource type="Animation" uid="uid://cmdinyyd45ls6" path="res://assets/models/animations/General/Throw.res" id="15_fat6c"]
+[ext_resource type="Animation" uid="uid://b2bothgmb8651" path="res://assets/models/animations/General/Use_Item.res" id="16_3mcf0"]
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_d8ixs"]
+_data = {
+&"Death_A": ExtResource("2_mft2j"),
+&"Death_A_Pose": ExtResource("3_k3ch3"),
+&"Death_B": ExtResource("4_melbt"),
+&"Death_B_Pose": ExtResource("5_1r4qc"),
+&"Hit_A": ExtResource("6_xao12"),
+&"Hit_B": ExtResource("7_cgnof"),
+&"Idle_A": ExtResource("8_kj3hj"),
+&"Idle_B": ExtResource("9_7kff8"),
+&"Interact": ExtResource("10_m8445"),
+&"PickUp": ExtResource("11_7o1ef"),
+&"Spawn_Air": ExtResource("12_3stmg"),
+&"Spawn_Ground": ExtResource("13_u4bvy"),
+&"T-Pose": ExtResource("14_og2mv"),
+&"Throw": ExtResource("15_fat6c"),
+&"Use_Item": ExtResource("16_3mcf0")
+}
+
+[node name="Knight" instance=ExtResource("1_7lh1p")]
+
+[node name="Skeleton3D" parent="Rig_Medium" index="0"]
+bones/0/position = Vector3(0, 2, 0)
+bones/0/rotation = Quaternion(1.19209275e-07, 0, 1, 0)
+bones/0/scale = Vector3(0, 0, 0)
+bones/1/rotation = Quaternion(-1.19209275e-07, 0, 1, 0)
+bones/1/scale = Vector3(0, 0, 0)
+bones/2/rotation = Quaternion(7.1054274e-15, 0, 1, 0)
+bones/2/scale = Vector3(0, 0, 0)
+bones/3/rotation = Quaternion(-4.2351647e-22, 0, 1, 0)
+bones/3/scale = Vector3(0, 0, 0)
+bones/4/position = Vector3(0.21200736, 0.13413227, 8.487841e-08)
+bones/4/rotation = Quaternion(0.48546484, -0.5141243, -0.51412445, -0.48546484)
+bones/4/scale = Vector3(0, 0, 0)
+bones/5/rotation = Quaternion(-6.228114e-08, -1.4945555e-09, 0.99847007, 0.055296484)
+bones/5/scale = Vector3(0, 0, 0)
+bones/6/rotation = Quaternion(-3.0774247e-10, -5.1184307e-11, 0.99964464, -0.026658095)
+bones/6/scale = Vector3(0, 0, 0)
+bones/7/rotation = Quaternion(-6.5471297e-15, 1.110223e-16, -1, 1.8626451e-09)
+bones/7/scale = Vector3(0, 0, 0)
+bones/8/position = Vector3(5.138494e-10, 0.096125126, -0.057500005)
+bones/8/rotation = Quaternion(1.6806121e-09, -1.6806132e-09, 0.70710665, 0.7071069)
+bones/8/scale = Vector3(0, 0, 0)
+bones/9/position = Vector3(-0.21200736, 0.13413227, 8.487841e-08)
+bones/9/rotation = Quaternion(0.48546487, 0.5141243, 0.5141245, -0.4854649)
+bones/9/scale = Vector3(0, 0, 0)
+bones/10/rotation = Quaternion(-6.228114e-08, 1.4945555e-09, -0.99847007, 0.055296484)
+bones/10/scale = Vector3(0, 0, 0)
+bones/11/rotation = Quaternion(-3.077425e-10, 5.1184303e-11, -0.99964464, -0.026658095)
+bones/11/scale = Vector3(0, 0, 0)
+bones/12/rotation = Quaternion(5.596482e-16, 1.110223e-16, 1, 1.8626451e-09)
+bones/12/scale = Vector3(0, 0, 0)
+bones/13/position = Vector3(-5.138494e-10, 0.096125126, -0.057500005)
+bones/13/rotation = Quaternion(1.680592e-09, 1.6805931e-09, -0.70710665, 0.7071069)
+bones/13/scale = Vector3(0, 0, 0)
+bones/14/rotation = Quaternion(4.2351647e-22, 0, 1, 0)
+bones/14/scale = Vector3(0, 0, 0)
+bones/15/rotation = Quaternion(-6.6969044e-08, 0.9998491, -0.017373951, 7.698089e-08)
+bones/15/scale = Vector3(0, 0, 0)
+bones/16/rotation = Quaternion(6.865223e-08, 0.10622717, -0.99434197, 7.3771076e-08)
+bones/16/scale = Vector3(0, 0, 0)
+bones/17/rotation = Quaternion(-7.6781514e-10, 0.45524004, 0.89036876, 1.5014354e-09)
+bones/17/scale = Vector3(0, 0, 0)
+bones/18/rotation = Quaternion(0.9203548, -3.047865e-08, -6.9484855e-08, 0.3910845)
+bones/18/scale = Vector3(0, 0, 0)
+bones/19/rotation = Quaternion(-6.696905e-08, -0.9998491, 0.017373951, 7.6980896e-08)
+bones/19/scale = Vector3(0, 0, 0)
+bones/20/rotation = Quaternion(6.865221e-08, -0.10622717, 0.99434197, 7.377109e-08)
+bones/20/scale = Vector3(0, 0, 0)
+bones/21/rotation = Quaternion(-7.678126e-10, -0.45524004, -0.89036876, 1.501455e-09)
+bones/21/scale = Vector3(0, 0, 0)
+bones/22/rotation = Quaternion(0.9203548, 3.0478663e-08, 6.948485e-08, 0.3910845)
+bones/22/scale = Vector3(0, 0, 0)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." index="1"]
+libraries = {
+&"Knight": SubResource("AnimationLibrary_d8ixs")
+}

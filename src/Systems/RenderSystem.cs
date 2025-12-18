@@ -9,7 +9,7 @@ namespace Game
 		private readonly Node3D _boardContainer = new() { Name = "Board" };
 		private readonly Node3D _unitContainer = new() { Name = "Units" };
 		private readonly PackedScene _tileScene = ResourceLoader.Load<PackedScene>("res://src/Scenes/HexTile.tscn");
-		private readonly PackedScene _waterHexScene = ResourceLoader.Load<PackedScene>("res://assets/models/hex_water.gltf");
+		private readonly PackedScene _waterHexScene = ResourceLoader.Load<PackedScene>("res://assets/models/environment/hex_water.gltf");
 
 		public override void Initialize()
 		{

@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://dooip7hir4st8"]
 
-[ext_resource type="PackedScene" uid="uid://buekuqohkjb4l" path="res://src/Scenes/Board.tscn" id="1_fca0k"]
 [ext_resource type="Script" uid="uid://ds2v84eixtb2k" path="res://src/Services/LightingManager.cs" id="2_lighting"]
+[ext_resource type="Script" uid="uid://bkedh4hdw5tv3" path="res://src/Game/GameManager.cs" id="3_gamemanager"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n3v4m"]
 albedo_color = Color(0.38683504, 0.51, 0.1581, 1)
@@ -17,7 +17,8 @@ AmbientLightEnergy = 0.4
 SunEnergy = 1.8
 SunAngleX = 50.0
 
-[node name="GameManager" parent="." instance=ExtResource("1_fca0k")]
+[node name="GameManager" type="Node3D" parent="."]
+script = ExtResource("3_gamemanager")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.90630776, 0, -0.42261827, 0, 1, 0, 0.42261827, 0, 0.90630776, 0, 14, 0)
@@ -46,7 +47,7 @@ v_offset = -12.0
 projection = 1
 current = true
 fov = 45.5955
-size = 17.0
+size = 14.0
 near = 0.001
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
