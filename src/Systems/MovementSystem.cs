@@ -122,11 +122,21 @@ namespace Game
             var destination = path.Last();
             var destinationTile = Entities.GetAt(destination);
 
-            // Check if player was already in attack range of an enemy before moving (for player attacks)
-            Entity enemyInRange = null;
+            // Track which enemies player was already in range of before moving
+            List<int> enemiesAlreadyInRange = new List<int>();
             if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
-                enemyInRange = CheckIfPlayerWasInEnemyRange(mover, origin);
+                // Get all enemies that could attack the player at origin
+                var enemiesAtOrigin = Entities.Query<Enemy, Coordinate>()
+                    .Where(enemy =>
+                    {
+                        var enemyAttackRange = RangeSystem.GetAttackRangeTiles(enemy, enemy.Get<Coordinate>());
+                        return enemyAttackRange.Contains(origin);
+                    })
+                    .Select(e => e.Id)
+                    .ToList();
+
+                enemiesAlreadyInRange.AddRange(enemiesAtOrigin);
             }
 
             // Set to Move animation state
@@ -142,16 +152,16 @@ namespace Game
 
             // Animation system will set back to Idle via MoveCompleted event
 
-            // ENEMY ATTACKS: Check if PLAYER moved into enemy attack range (not if enemy moved)
-            // Multiple enemies can attack if their threat zones overlap
+            // ENEMY REACTIVE ATTACKS: Only enemies whose range the player NEWLY entered attack
+            // Skip enemies that player was already in range of
             if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
-                // Process attacks from all threatening enemies
+                // Process attacks from all threatening enemies that we NEWLY entered range of
                 foreach (var attacker in Entities.Query<Enemy, Coordinate>()
                     .Where(enemy =>
                     {
-                        // Skip the enemy we were already fighting (they don't get a reactive attack)
-                        if (enemyInRange != null && enemy.Id == enemyInRange.Id)
+                        // Skip enemies we were already in range of (they don't get reactive attacks)
+                        if (enemiesAlreadyInRange.Contains(enemy.Id))
                             return false;
 
                         // Check if destination is in this enemy's attack range
@@ -169,28 +179,29 @@ namespace Game
                 }
             }
 
-            // PLAYER ATTACKS: Player attacks ALL enemies in range when moving within range
+            // PLAYER ATTACKS: Player attacks ALL enemies in range at destination that they were ALREADY adjacent to
             if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
                 // Get all enemies in attack range at destination
                 var enemiesInRange = Entities.Query<Enemy, Coordinate>()
                     .Where(enemy =>
                     {
-                        // Check if enemy is in player's attack range from destination
+                        // Only attack enemies we were already in range of (moving within their range)
+                        if (!enemiesAlreadyInRange.Contains(enemy.Id))
+                            return false;
+
+                        // Check if enemy is still in player's attack range from destination
                         return IsInAttackRange(mover, destination, enemy.Get<Coordinate>()) &&
                                _combatSystem.CanAttack(mover, enemy);
                     })
                     .ToList();
 
-                // Attack all enemies in range
+                // Attack all enemies that we were already fighting
                 foreach (var enemy in enemiesInRange)
                 {
-                    // Only attack if we were already fighting this enemy (moved within their range)
-                    // OR if we just entered their range (covered by reactive attack above)
-                    if (enemyInRange != null && enemy.Id == enemyInRange.Id)
-                    {
-                        await _combatSystem.ResolveCombat(mover, enemy);
-                    }
+                    await _combatSystem.ResolveCombat(mover, enemy);
+
+                    // No need to check if player died - player attacks happen after enemy attacks
                 }
             }
 
@@ -203,32 +214,6 @@ namespace Game
         private IEnumerable<Vector3I> GetAttackRangeTiles(Entity entity, Vector3I position)
         {
             return RangeSystem.GetAttackRangeTiles(entity, position);
-        }
-
-        /// <summary>
-        /// Check if player is currently in attack range of any enemy
-        /// </summary>
-        private Entity CheckIfPlayerWasInEnemyRange(Entity player, Vector3I playerCoord)
-        {
-            if (player == null) return null;
-
-            // Get all tiles within player's attack range (based on player's range type)
-            var attackRangeTiles = GetAttackRangeTiles(player, playerCoord);
-
-            // Check each tile for enemies
-            foreach (var coord in attackRangeTiles)
-            {
-                var enemiesAtCoord = Entities.Query<Enemy, Coordinate>()
-                    .Where(e => e.Get<Coordinate>() == coord)
-                    .FirstOrDefault();
-
-                if (enemiesAtCoord != null)
-                {
-                    return enemiesAtCoord; // Return first enemy found in range
-                }
-            }
-
-            return null;
         }
 
         /// <summary>
