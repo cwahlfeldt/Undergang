@@ -1,6 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://cu7aveyof5h02"]
+[gd_scene load_steps=5 format=3 uid="uid://cu7aveyof5h02"]
 
 [ext_resource type="PackedScene" uid="uid://di4ym2pcuivcp" path="res://assets/models/characters/Skeleton_Mage/Skeleton_Mage.glb" id="2_ln43o"]
+[ext_resource type="AnimationLibrary" uid="uid://ccp41w2sxrumd" path="res://assets/models/animations/Character.res" id="2_g1uh0"]
+[ext_resource type="AnimationLibrary" uid="uid://4x2bd5fq0rpr" path="res://assets/models/animations/Movement.res" id="3_5dq0m"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_wsnrg"]
 height = 1.49524
@@ -14,3 +16,9 @@ shape = SubResource("CapsuleShape3D_wsnrg")
 
 [node name="Skeleton_Mage" parent="." instance=ExtResource("2_ln43o")]
 transform = Transform3D(-0.72, 0, 1.0871698e-07, 0, 0.72, 0, -1.0871698e-07, 0, -0.72, 0, 0, 0)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Skeleton_Mage"]
+libraries = {
+&"Character": ExtResource("2_g1uh0"),
+&"Movement": ExtResource("3_5dq0m")
+}

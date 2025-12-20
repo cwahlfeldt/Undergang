@@ -1,6 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://dqwcyy4b4vn7l"]
+[gd_scene load_steps=5 format=3 uid="uid://dqwcyy4b4vn7l"]
 
 [ext_resource type="PackedScene" uid="uid://dcygxpe53vyl5" path="res://assets/models/characters/Skeleton_Minion/Skeleton_Minion.glb" id="1_5qudi"]
+[ext_resource type="AnimationLibrary" uid="uid://ccp41w2sxrumd" path="res://assets/models/animations/Character.res" id="2_g1uh0"]
+[ext_resource type="AnimationLibrary" uid="uid://4x2bd5fq0rpr" path="res://assets/models/animations/Movement.res" id="3_5dq0m"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_qrunm"]
 height = 1.56693
@@ -14,3 +16,9 @@ shape = SubResource("CapsuleShape3D_qrunm")
 
 [node name="Skeleton_Minion" parent="." instance=ExtResource("1_5qudi")]
 transform = Transform3D(-0.685, 0, 1.0343213e-07, 0, 0.685, 0, -1.0343213e-07, 0, -0.685, 0, 0, 0)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Skeleton_Minion"]
+libraries = {
+&"Character": ExtResource("2_g1uh0"),
+&"Movement": ExtResource("3_5dq0m")
+}
