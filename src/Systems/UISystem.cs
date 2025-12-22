@@ -13,8 +13,11 @@ namespace Game
         private Control _uiContainer;
         private Button _dashButton;
         private Label _dashCooldownLabel;
+        private Button _blockButton;
+        private Label _blockCooldownLabel;
         private Label _fpsLabel;
         private DashSystem _dashSystem;
+        private BlockSystem _blockSystem;
         private TileHighlightSystem _tileHighlightSystem;
         private const int HEART_SIZE = 48;
         private const int HEART_SPACING = 8;
@@ -57,10 +60,14 @@ namespace Game
 
             // Get system references
             _dashSystem = Systems.Get<DashSystem>();
+            _blockSystem = Systems.Get<BlockSystem>();
             _tileHighlightSystem = Systems.Get<TileHighlightSystem>();
 
             // Create dash button
             CreateDashButton(canvasLayer);
+
+            // Create block button
+            CreateBlockButton(canvasLayer);
 
             // Create FPS counter
             CreateFpsCounter(canvasLayer);
@@ -68,6 +75,7 @@ namespace Game
             // Subscribe to component changes
             Events.ComponentChanged += OnComponentChanged;
             Events.TurnChanged += OnTurnChanged;
+            Events.UnitDefeated += OnUnitDefeated;
         }
 
         public override async Task Update()
@@ -82,6 +90,10 @@ namespace Game
                     UpdateHearts(_currentPlayerHealth);
                 }
             }
+
+            // Update ability button states (ensures UI stays in sync)
+            UpdateDashButtonState();
+            UpdateBlockButtonState();
 
             // Update FPS counter
             UpdateFpsCounter();
@@ -254,6 +266,136 @@ namespace Game
             UpdateDashButtonState();
         }
 
+        private void CreateBlockButton(CanvasLayer canvasLayer)
+        {
+            // Create container for block button
+            var blockContainer = new Control
+            {
+                Name = "BlockContainer",
+                Position = new Vector2(20, 190),  // Below dash button
+                Size = new Vector2(200, 80)
+            };
+            canvasLayer.AddChild(blockContainer);
+
+            // Create block button
+            _blockButton = new Button
+            {
+                Name = "BlockButton",
+                Text = "BLOCK (B)",
+                Size = new Vector2(180, 50),
+                Position = new Vector2(0, 0)
+            };
+
+            // Style the button (green/shield color theme)
+            var styleBoxNormal = new StyleBoxFlat
+            {
+                BgColor = new Color(0.2f, 0.8f, 0.3f, 0.8f),
+                BorderColor = new Color(0.1f, 0.5f, 0.2f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            var styleBoxHover = new StyleBoxFlat
+            {
+                BgColor = new Color(0.3f, 0.9f, 0.4f, 0.9f),
+                BorderColor = new Color(0.1f, 0.5f, 0.2f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            var styleBoxPressed = new StyleBoxFlat
+            {
+                BgColor = new Color(0.1f, 0.6f, 0.2f, 1.0f),
+                BorderColor = new Color(0.1f, 0.5f, 0.2f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            var styleBoxDisabled = new StyleBoxFlat
+            {
+                BgColor = new Color(0.3f, 0.3f, 0.3f, 0.5f),
+                BorderColor = new Color(0.2f, 0.2f, 0.2f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            var styleBoxActive = new StyleBoxFlat
+            {
+                BgColor = new Color(0.8f, 1.0f, 0.2f, 1.0f),  // Bright yellow-green when active
+                BorderColor = new Color(0.5f, 0.7f, 0.1f, 1.0f),
+                BorderWidthLeft = 3,
+                BorderWidthRight = 3,
+                BorderWidthTop = 3,
+                BorderWidthBottom = 3,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            _blockButton.AddThemeStyleboxOverride("normal", styleBoxNormal);
+            _blockButton.AddThemeStyleboxOverride("hover", styleBoxHover);
+            _blockButton.AddThemeStyleboxOverride("pressed", styleBoxPressed);
+            _blockButton.AddThemeStyleboxOverride("disabled", styleBoxDisabled);
+
+            _blockButton.Pressed += OnBlockButtonPressed;
+            blockContainer.AddChild(_blockButton);
+
+            // Create cooldown label
+            _blockCooldownLabel = new Label
+            {
+                Name = "BlockCooldownLabel",
+                Position = new Vector2(0, 55),
+                Size = new Vector2(180, 25),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Visible = false
+            };
+
+            _blockCooldownLabel.AddThemeFontSizeOverride("font_size", 18);
+            _blockCooldownLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.3f, 0.3f, 1.0f));
+
+            blockContainer.AddChild(_blockCooldownLabel);
+
+            // Initial update
+            UpdateBlockButtonState();
+        }
+
+        private void OnBlockButtonPressed()
+        {
+            if (_player == null) return;
+
+            // Toggle block on/off
+            _blockSystem.ToggleBlock();
+
+            // Update button visual state immediately
+            UpdateBlockButtonState();
+        }
+
         private void OnDashButtonPressed()
         {
             if (_player == null) return;
@@ -270,10 +412,11 @@ namespace Game
 
         private void OnTurnChanged(Entity unit)
         {
-            // Update dash button when turn changes
+            // Update ability buttons when turn changes
             if (unit.Has<Player>())
             {
                 UpdateDashButtonState();
+                UpdateBlockButtonState();
             }
         }
 
@@ -306,6 +449,70 @@ namespace Game
                 _dashButton.Disabled = true;
                 _dashCooldownLabel.Text = $"Cooldown: {cooldown}";
                 _dashCooldownLabel.Visible = true;
+            }
+        }
+
+        private void UpdateBlockButtonState()
+        {
+            if (_player == null || _blockButton == null) return;
+
+            bool isBlockAvailable = _blockSystem.IsBlockAvailable(_player);
+            int cooldown = _blockSystem.GetRemainingCooldown(_player);
+            bool isBlockActive = _blockSystem.IsBlockActive(_player);
+
+            if (isBlockActive)
+            {
+                // Block is active - can be toggled off
+                _blockButton.Text = "BLOCK (ACTIVE!)";
+                _blockButton.Disabled = false;  // Allow toggling off
+                _blockCooldownLabel.Visible = false;
+
+                // Use special active style
+                var styleBoxActive = new StyleBoxFlat
+                {
+                    BgColor = new Color(0.8f, 1.0f, 0.2f, 1.0f),
+                    BorderColor = new Color(0.5f, 0.7f, 0.1f, 1.0f),
+                    BorderWidthLeft = 3,
+                    BorderWidthRight = 3,
+                    BorderWidthTop = 3,
+                    BorderWidthBottom = 3,
+                    CornerRadiusTopLeft = 8,
+                    CornerRadiusTopRight = 8,
+                    CornerRadiusBottomLeft = 8,
+                    CornerRadiusBottomRight = 8
+                };
+                _blockButton.AddThemeStyleboxOverride("normal", styleBoxActive);
+            }
+            else if (isBlockAvailable)
+            {
+                // Block is ready
+                _blockButton.Text = "BLOCK (B)";
+                _blockButton.Disabled = false;
+                _blockCooldownLabel.Visible = false;
+
+                // Restore normal style
+                var styleBoxNormal = new StyleBoxFlat
+                {
+                    BgColor = new Color(0.2f, 0.8f, 0.3f, 0.8f),
+                    BorderColor = new Color(0.1f, 0.5f, 0.2f, 1.0f),
+                    BorderWidthLeft = 2,
+                    BorderWidthRight = 2,
+                    BorderWidthTop = 2,
+                    BorderWidthBottom = 2,
+                    CornerRadiusTopLeft = 8,
+                    CornerRadiusTopRight = 8,
+                    CornerRadiusBottomLeft = 8,
+                    CornerRadiusBottomRight = 8
+                };
+                _blockButton.AddThemeStyleboxOverride("normal", styleBoxNormal);
+            }
+            else
+            {
+                // Block is on cooldown
+                _blockButton.Text = "BLOCK (B)";
+                _blockButton.Disabled = true;
+                _blockCooldownLabel.Text = $"Cooldown: {cooldown}";
+                _blockCooldownLabel.Visible = true;
             }
         }
 
@@ -349,14 +556,30 @@ namespace Game
             }
         }
 
+        private void OnUnitDefeated(Entity unit)
+        {
+            // Update UI when any unit is defeated (could affect block/dash states)
+            if (_player != null)
+            {
+                UpdateDashButtonState();
+                UpdateBlockButtonState();
+            }
+        }
+
         public override void Cleanup()
         {
             Events.ComponentChanged -= OnComponentChanged;
             Events.TurnChanged -= OnTurnChanged;
+            Events.UnitDefeated -= OnUnitDefeated;
 
             if (_dashButton != null)
             {
                 _dashButton.Pressed -= OnDashButtonPressed;
+            }
+
+            if (_blockButton != null)
+            {
+                _blockButton.Pressed -= OnBlockButtonPressed;
             }
 
             foreach (var heart in _hearts)

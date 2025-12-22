@@ -22,7 +22,11 @@ public record Config
 
     // Dash ability settings
     public const int DashRange = 2;
-    public const int DashCooldown = 3;
+    public const int DashCooldown = 4;
     public const float DashAnimationSpeed = 0.25f;
     public const float NormalMoveAnimationSpeed = 0.25f;
+
+    // Block ability settings
+    public const int BlockCooldown = 3;
+    public const int BlockDuration = 1;  // Number of turns block stays active
 }

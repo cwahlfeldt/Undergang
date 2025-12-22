@@ -38,4 +38,19 @@ namespace Game.Components
     /// Marker component indicating a tile is within dash range
     /// </summary>
     public readonly record struct DashRangeTile();
+
+    /// <summary>
+    /// Block ability cooldown tracker
+    /// Tracks remaining turns until block is available again
+    /// </summary>
+    public record struct BlockCooldown(int RemainingTurns)
+    {
+        public static implicit operator int(BlockCooldown cooldown) => cooldown.RemainingTurns;
+    }
+
+    /// <summary>
+    /// Marker component indicating block is currently active
+    /// When active, the next incoming attack will be negated
+    /// </summary>
+    public readonly record struct BlockActive();
 }

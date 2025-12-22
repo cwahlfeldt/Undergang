@@ -23,6 +23,7 @@ namespace Game
 			_systems.Register<RenderSystem>();
 			_systems.Register<AnimationSystem>();
 			_systems.Register<DashSystem>();
+			_systems.Register<BlockSystem>();
 			_systems.Register<UISystem>();
 			_systems.Register<TurnSystem>();
 			_systems.Register<EnemySystem>();

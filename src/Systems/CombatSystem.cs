@@ -8,12 +8,14 @@ namespace Game
 	{
 		private Tweener _tweener;
 		private AnimationSystem _animationSystem;
+		private BlockSystem _blockSystem;
 
 		public override void Initialize()
 		{
 			Events.UnitDefeated += OnUnitDefeated;
 			_tweener = Tweener.Instance;
 			_animationSystem = Systems.Get<AnimationSystem>();
+			_blockSystem = Systems.Get<BlockSystem>();
 		}
 
 		public override async Task Update()
@@ -38,13 +40,10 @@ namespace Game
 					return;
 			}
 
-			// Get combat values
-			int damage = attacker.Get<Damage>();
-			int currentHealth = defender.Get<Health>();
-			int newHealth = currentHealth - damage;
+			// Check if defender has block active
+			bool hasBlock = defender.Has<BlockActive>();
 
-			// Debug: Print detailed combat info
-						// Play attack animation (uses AnimationSystem for state-based animations)
+			// Play attack animation (uses AnimationSystem for state-based animations)
 			if (attacker.Has<Unit>() && defender.Has<Unit>())
 			{
 				await _animationSystem.PlayAttackAnimation(attacker, defender);
@@ -62,16 +61,33 @@ namespace Game
 			}
 
 			// Apply damage after animation
-			if (newHealth <= 0)
+			if (hasBlock)
 			{
-				// Defender is defeated - set health to 0 first so checks work properly
-				defender.Update(new Health(0));
-				Events.OnUnitDefeated(defender);
+				// Block negates the attack completely
+				_blockSystem.ConsumeBlock(defender);
+				GD.Print($"Attack blocked! {defender.Get<Name>()} used block to negate {attacker.Get<Damage>()} damage.");
+
+				// Update UI to reflect block being consumed
+				Events.OnTurnChanged(defender);
 			}
 			else
 			{
-				// Update defender's health
-				defender.Update(new Health(newHealth));
+				// Get combat values
+				int damage = attacker.Get<Damage>();
+				int currentHealth = defender.Get<Health>();
+				int newHealth = currentHealth - damage;
+
+				if (newHealth <= 0)
+				{
+					// Defender is defeated - set health to 0 first so checks work properly
+					defender.Update(new Health(0));
+					Events.OnUnitDefeated(defender);
+				}
+				else
+				{
+					// Update defender's health
+					defender.Update(new Health(newHealth));
+				}
 			}
 		}
 
