@@ -122,21 +122,27 @@ namespace Game
             var destination = path.Last();
             var destinationTile = Entities.GetAt(destination);
 
-            // Track which enemies player was already in range of before moving
-            List<int> enemiesAlreadyInRange = new List<int>();
+            // Track which MELEE enemies player was already adjacent to before moving
+            // Only melee enemies (RangeCircle) skip reactive attacks when player was already in range
+            // Ranged enemies always get reactive attacks when player is in their range
+            List<int> meleeEnemiesAlreadyAdjacent = new List<int>();
             if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
-                // Get all enemies that could attack the player at origin
-                var enemiesAtOrigin = Entities.Query<Enemy, Coordinate>()
+                // Get all MELEE enemies that could attack the player at origin
+                var meleeEnemiesAtOrigin = Entities.Query<Enemy, Coordinate>()
                     .Where(enemy =>
                     {
+                        // Only apply "already in range" logic to melee enemies
+                        if (!enemy.Has<RangeCircle>())
+                            return false;
+
                         var enemyAttackRange = RangeSystem.GetAttackRangeTiles(enemy, enemy.Get<Coordinate>());
                         return enemyAttackRange.Contains(origin);
                     })
                     .Select(e => e.Id)
                     .ToList();
 
-                enemiesAlreadyInRange.AddRange(enemiesAtOrigin);
+                meleeEnemiesAlreadyAdjacent.AddRange(meleeEnemiesAtOrigin);
             }
 
             // Set to Move animation state
@@ -152,16 +158,16 @@ namespace Game
 
             // Animation system will set back to Idle via MoveCompleted event
 
-            // ENEMY REACTIVE ATTACKS: Only enemies whose range the player NEWLY entered attack
-            // Skip enemies that player was already in range of
+            // ENEMY REACTIVE ATTACKS: Enemies attack when player enters/remains in their range
+            // Exception: Melee enemies (RangeCircle) don't get reactive attacks if player was already adjacent
             if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
-                // Process attacks from all threatening enemies that we NEWLY entered range of
+                // Process attacks from all threatening enemies
                 foreach (var attacker in Entities.Query<Enemy, Coordinate>()
                     .Where(enemy =>
                     {
-                        // Skip enemies we were already in range of (they don't get reactive attacks)
-                        if (enemiesAlreadyInRange.Contains(enemy.Id))
+                        // Skip melee enemies we were already adjacent to (they don't get reactive attacks)
+                        if (meleeEnemiesAlreadyAdjacent.Contains(enemy.Id))
                             return false;
 
                         // Check if destination is in this enemy's attack range
@@ -179,15 +185,16 @@ namespace Game
                 }
             }
 
-            // PLAYER ATTACKS: Player attacks ALL enemies in range at destination that they were ALREADY adjacent to
+            // PLAYER ATTACKS: Player attacks melee enemies they were already adjacent to
+            // (Hoplite-style: moving within an enemy's melee range triggers player counter-attack)
             if (mover.Has<Player>() && mover.Has<CurrentTurn>())
             {
-                // Get all enemies in attack range at destination
+                // Get all melee enemies we were adjacent to that are still in player's attack range
                 var enemiesInRange = Entities.Query<Enemy, Coordinate>()
                     .Where(enemy =>
                     {
-                        // Only attack enemies we were already in range of (moving within their range)
-                        if (!enemiesAlreadyInRange.Contains(enemy.Id))
+                        // Only attack melee enemies we were already adjacent to
+                        if (!meleeEnemiesAlreadyAdjacent.Contains(enemy.Id))
                             return false;
 
                         // Check if enemy is still in player's attack range from destination
@@ -196,7 +203,7 @@ namespace Game
                     })
                     .ToList();
 
-                // Attack all enemies that we were already fighting
+                // Attack all melee enemies that we were already fighting
                 foreach (var enemy in enemiesInRange)
                 {
                     await _combatSystem.ResolveCombat(mover, enemy);

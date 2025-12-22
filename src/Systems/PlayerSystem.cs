@@ -32,6 +32,11 @@ namespace Game
                 return;
 
             var destination = tile.Get<Coordinate>();
+            var playerCoord = player.Get<Coordinate>();
+
+            // Don't allow moving to current position
+            if (destination == playerCoord)
+                return;
 
             // Direct orchestration - clear and traceable
             await _turnSystem.ExecutePlayerAction(player, destination);
