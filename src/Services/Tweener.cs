@@ -10,7 +10,7 @@ namespace Game
         private const float DEFAULT_MOVEMENT_DURATION = Config.NormalMoveAnimationSpeed;
         private const float DEFAULT_ROTATION_DURATION = 0.15f;
         private const Tween.TransitionType DEFAULT_TRANS_TYPE = Tween.TransitionType.Sine;
-        private const Tween.EaseType DEFAULT_EASE_TYPE = Tween.EaseType.InOut;
+        private const Tween.EaseType DEFAULT_EASE_TYPE = Tween.EaseType.Out;
         private readonly Dictionary<Node, Tween> _activeTweens = [];
         public override void _Ready() => Instance = this;
 
