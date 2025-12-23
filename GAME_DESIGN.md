@@ -9,7 +9,7 @@
 
 ### High Concept
 
-Undergang is a turn-based tactical game where every move is a life-or-death decision. Navigate a hex-based battlefield where enemies attack reactively when you enter their range. Success requires careful planning, spatial awareness, and clever use of limited abilities to survive increasingly challenging encounters.
+Undergang is a dark medieval fantasy turn-based tactics game where you must survive the cursed crypts filled with undead warriors. Every move is a life-or-death decision as skeletal enemies attack reactively when you enter their range. Navigate deeper into ancient tombs, using tactical positioning, special abilities, and careful planning to overcome increasingly deadly undead guardians and escape with your life.
 
 ---
 
@@ -24,22 +24,29 @@ Undergang is a turn-based tactical game where every move is a life-or-death deci
 
 ## Game Theme & Setting
 
-> **[TO BE FLESHED OUT]**
->
-> Current working concept: The name "Undergang" (Norwegian/Danish for "downfall" or "demise") suggests themes of descent, inevitable conflict, or fighting against overwhelming odds.
->
-> **Potential Directions:**
-> - Underground labyrinth exploration (literal "undergang")
-> - Last stand against an overwhelming force
-> - Gladiatorial arena combat
-> - Abstract tactical puzzle space (minimal narrative)
-> - Norse/Scandinavian mythology themes
->
-> **Questions to Answer:**
-> - Who is the player character?
-> - Why are they fighting?
-> - What is the world/setting?
-> - What gives each enemy type its unique attack pattern?
+### Medieval Fantasy - The Crypt of the Fallen
+
+**Setting:** Ancient crypts and burial grounds where the dead refuse to rest. The name "Undergang" (downfall/demise) refers to the cursed underground tombs where skeletal warriors endlessly rise to defend their domain.
+
+**Player Character:** A lone warrior (knight, adventurer, or tomb raider) delving into forbidden crypts seeking treasure, glory, or perhaps to end an undead curse.
+
+**The World:**
+- **Dark Medieval Fantasy** - Gothic crypts, ancient stonework, flickering torchlight
+- **The Undead Rise** - Skeleton warriors awaken from centuries of slumber
+- **Cursed Depths** - Each level represents a deeper chamber of the crypt
+- **Tactical Horror** - Not about jump scares, but the slow dread of being surrounded
+
+**Enemy Lore:**
+- **Grunts (Skeletal Warriors)** - Former soldiers, still trained in close combat
+- **Wizards (Skeletal Mages)** - Undead spellcasters who can project dark magic in all directions
+- **Snipers (Skeletal Archers)** - Precision marksmen who fire along precise firing lanes
+- Each deeper level contains older, stronger, and more dangerous undead
+
+**Atmosphere:**
+- Hex tiles represent ancient flagstones in hexagonal crypt chambers
+- Blocked tiles are pillars, rubble, sarcophagi, and collapsed sections
+- The tactical combat represents methodical, deadly duels in confined spaces
+- Every movement echoes off stone walls as skeletal eyes track your position
 
 ---
 
@@ -87,28 +94,31 @@ This creates a tactical puzzle where:
 
 ## Player Abilities
 
-### Movement
+### Movement (Basic Attack)
 - **Range:** Adjacent hex tiles (6 neighbors)
-- **Traversal:** Can only move to non-blocked, walkable tiles
-- **Triggers Combat:** Movement is the primary combat trigger
+- **Traversal:** Navigate between flagstones, avoiding rubble and pillars
+- **Triggers Combat:** Movement is the primary way to engage enemies
+- **Flavor:** Careful footwork and blade positioning in close quarters
 
-### Dash Ability
-- **Effect:** Teleport to any tile within 2-tile radius
+### Dash (Combat Roll / Shadow Step)
+- **Effect:** Swift movement to any tile within 2-tile radius
 - **Cooldown:** 4 turns
+- **Flavor:** A desperate roll through skeletal warriors or a mystical shadow step
 - **Tactical Use:**
   - Escape from surrounded positions
   - Bypass enemy threat zones
-  - Quickly close distance to objectives
-  - Does NOT trigger reactive enemy attacks (teleport, not movement)
+  - Quickly close distance to objectives or retreat
+  - Does NOT trigger reactive enemy attacks (too fast/magical to intercept)
 
-### Block Ability
+### Block (Shield Parry / Defensive Stance)
 - **Effect:** Negate the next incoming attack
 - **Cooldown:** 3 turns (starts after block is consumed)
 - **Duration:** Persists until consumed by an attack
+- **Flavor:** Raise your shield or take a defensive stance
 - **Tactical Use:**
   - Safe passage through a single enemy threat zone
   - Survive when low on health
-  - Enables aggressive positioning
+  - Enables aggressive positioning through danger zones
   - Strategic timing: activate before risky moves
 
 ---
@@ -117,31 +127,43 @@ This creates a tactical puzzle where:
 
 ### Current Enemy Types
 
-#### Grunt (Melee)
+All enemies are animated skeleton warriors with distinct combat roles:
+
+#### Skeletal Warrior (Grunt)
+- **Type:** Melee undead fighter
 - **Attack Range:** Adjacent tiles only (RangeCircle)
-- **Behavior:** Basic melee threat, must be directly next to player
-- **Tactical Note:** Easiest to avoid, dangerous in groups
+- **Behavior:** Rushes into close combat, must be directly next to player
+- **Lore:** Former soldiers who retained their muscle memory for blade work
+- **Tactical Note:** Easiest to avoid individually, deadly in groups
 
-#### Wizard
-> **[TO BE IMPLEMENTED]**
-> - Potential for area-of-effect attacks
-> - Explosion radius pattern available in code
+#### Skeletal Mage (Wizard)
+- **Type:** Undead spellcaster
+- **Attack Range:** Area-of-effect / Explosion radius pattern
+- **Behavior:** Projects dark magic in all directions
+- **Lore:** Ancient mages whose spirits cling to forbidden knowledge
+- **Tactical Note:** Forces area denial, avoid clustering near them
+> **[PARTIAL IMPLEMENTATION]** - Range pattern available, needs full integration
 
-#### Sniper Variants (Ranged)
+#### Skeletal Archer Variants (Snipers)
 
-**SniperAxisQ** - Q-Axis Sniper
+The crypt's former marksmen, each guarding a different firing lane:
+
+**Skeletal Archer Q** (SniperAxisQ)
 - **Attack Range:** Linear along Q-axis (2-5 tiles)
-- **Coverage:** Creates threat "lanes" in one hex direction
+- **Coverage:** Creates deadly threat "lanes" in one hex direction
+- **Lore:** Archers trained to guard the northern approaches
 
-**SniperAxisR** - R-Axis Sniper
+**Skeletal Archer R** (SniperAxisR)
 - **Attack Range:** Linear along R-axis (2-5 tiles)
 - **Coverage:** Creates threat "lanes" in another hex direction
+- **Lore:** Defenders of the eastern corridors
 
-**SniperAxisS** - S-Axis Sniper
+**Skeletal Archer S** (SniperAxisS)
 - **Attack Range:** Linear along S-axis (2-5 tiles)
 - **Coverage:** Creates threat "lanes" in the third hex direction
+- **Lore:** Sentinels of the western passages
 
-**Combined Sniper Threat:** Three sniper variants can cover all six hex directions, creating complex threat patterns that require careful navigation.
+**Combined Archer Threat:** Three archer variants together can cover all six hex directions, creating a deadly crossfire that requires careful pathfinding through safe zones.
 
 ### Available Range Patterns (for future enemy types)
 
@@ -155,78 +177,147 @@ The engine supports these additional range patterns:
 
 ## Map Generation
 
-### Current Implementation
-- **Size:** 5-tile radius hex grid (configurable)
-- **Blocked Tiles:** 24 randomly placed obstacles
-- **Tile Variation:** Visual variety through tile index (20-90 range)
-- **Player Spawn:** Fixed position at (0, 4, -4)
-- **Enemy Spawn:** Random placement with 3-tile exclusion radius around player
+### Crypt Chamber Generation
+
+Each level represents a unique chamber of the ancient crypt:
+
+**Current Implementation:**
+- **Chamber Size:** 5-tile radius hex grid (configurable per level, scales 4-7 tiles)
+- **Obstacles:** 24 randomly placed structural elements
+- **Tile Variation:** Visual variety through different flagstone patterns (index 20-90)
+- **Player Entry:** Fixed spawn point at chamber entrance (0, 4, -4)
+- **Undead Positions:** Random skeleton placement with exclusion radius around player entry
 
 ### Map Elements
-- **Walkable Tiles** - Standard hex tiles
-- **Blocked Tiles** - Impassable obstacles that block movement and line of sight
-- **Traversable Indicator** - Clear visual distinction between walkable/blocked
+
+**Hexagonal Crypt Architecture:**
+- **Walkable Tiles** - Ancient hexagonal flagstones, cracked and weathered
+- **Blocked Tiles** - Structural obstacles creating tactical chokepoints:
+  - Stone pillars supporting the ceiling
+  - Crumbled sections of collapsed walls
+  - Stone sarcophagi (unopened tombs of other undead)
+  - Piles of rubble and debris
+  - Broken statues and monuments
+- **Traversable Indicator** - Clear visual distinction (lighter stone vs dark impassable areas)
+
+**Thematic Level Variation:**
+- **Early Levels** (1-3): Smaller, well-preserved chambers with sparse obstacles
+- **Mid Levels** (4-6): Larger chambers with more complex obstacle layouts
+- **Late Levels** (7-8): Massive, heavily damaged crypts with treacherous terrain
+
+> **Future Enhancement:** Hand-crafted obstacle layouts for specific tactical puzzles in later levels
 
 ---
 
 ## Visual & Animation System
 
 ### Animation States
-- **Idle** - Default resting state
-- **Move** - Walking/running during movement
-- **Attack** - Combat action animation
-- **Hurt** - Taking damage reaction
-- **Die** - Death animation
-- **Spawn, Victory, Defeat** - Optional states for future polish
+
+**Skeletal Enemy Animations** (Implemented):
+- **Idle** - Skeleton standing menacingly, subtle breathing/swaying
+- **Walking** - Skeletal march toward the player
+- **Attack** - Weapon swing or spell casting motion
+- **Hurt** - Recoil from damage
+- **Die** - Collapse into bone pile
+- **Spawn/Awaken** - Rising from the ground or sarcophagus
+- **Taunt** - Threatening gestures (optional flourish)
+
+All skeleton enemies use rigged character models with procedural animations.
+
+**Player Animations** (To be implemented):
+- Basic movement and combat animations
+- Dash ability visual (roll/shadow step effect)
+- Block ability visual (shield raise/defensive pose)
 
 ### Visual Feedback
-- **Movement Range** - Highlighted walkable tiles
-- **Threat Zones** - Enemy attack ranges clearly marked
-- **Dash Range** - Special highlight for dash ability targets
-- **Block Indicator** - Visual cue when block is active
-- **Health Display** - Current HP visible on units
+
+**Tactical Information:**
+- **Movement Range** - Highlighted walkable flagstone tiles
+- **Threat Zones** - Enemy attack ranges clearly marked with ominous overlays
+- **Dash Range** - Special highlight for dash ability escape routes
+- **Block Indicator** - Shield icon or defensive aura when block is active
+- **Health Display** - Current HP visible on all units
+
+**Medieval Fantasy Aesthetics:**
+- **Hex Tiles** - Ancient hexagonal flagstones with weathering
+- **Blocked Tiles** - Crumbling pillars, stone sarcophagi, collapsed debris
+- **Lighting** - Torch-lit atmosphere with dynamic shadows
+- **Effects** - Particle effects for magic, dust when skeletons spawn
 
 ### Lighting & Atmosphere
-- **SSAO** - Screen-space ambient occlusion for depth
-- **SSIL** - Screen-space indirect lighting for atmosphere
-- **Ambient Lighting** - Environmental mood setting
 
-> **[THEME DEPENDENT]**
-> Visual style should reinforce the game's theme once established.
-> Current implementation supports realistic character models (Mixamo integration).
+**Gothic Crypt Ambience:**
+- **SSAO** - Screen-space ambient occlusion emphasizing dark corners
+- **SSIL** - Screen-space indirect lighting for torch glow
+- **Ambient Lighting** - Dim, eerie blue-green ambient for undead atmosphere
+- **Dynamic Lighting** - Flickering torches on pillars
+- **Fog/Mist** - Optional atmospheric fog in deeper levels
+
+**Color Palette:**
+- Stone grays and browns for architecture
+- Sickly greens and blues for undead magic
+- Warm orange/yellow for torchlight contrast
+- Dark shadows for ominous mood
 
 ---
 
 ## Progression & Difficulty
 
-> **[TO BE FLESHED OUT]**
->
-> **Potential Systems:**
-> - **Wave-based survival** - Increasingly difficult enemy configurations
-> - **Roguelike runs** - Permadeath with meta-progression
-> - **Puzzle levels** - Hand-crafted tactical scenarios
-> - **Arena challenges** - Score-based survival modes
-> - **Ability unlocks** - New abilities earned through gameplay
-> - **Enemy escalation** - New enemy types introduced progressively
->
-> **Current State:**
-> Game has combat and systems in place but no win/loss conditions or progression structure yet.
+### The Eight Crypts of Undergang
+
+The game features **8 handcrafted levels** representing increasingly dangerous chambers of the cursed crypt:
+
+**Level Structure:**
+1. **The Awakening** - Tutorial level with 2 skeletal warriors
+2. **Distant Threats** - Introduction to ranged enemies (mages)
+3. **Line of Sight** - Learn to navigate archer firing lanes
+4. **Convergence** - Multiple enemy types working together
+5. **Hardened Foes** - Tougher enemies with bonus health
+6. **The Gauntlet** - Overwhelming numbers and complexity
+7. **Deadly Force** - Enemies hit harder (+1 damage)
+8. **Final Stand** - Everything combined, no safety net (rewind disabled)
+
+**Difficulty Scaling:**
+- **Map Size:** Grows from 4-tile radius to 7-tile radius
+- **Enemy Count:** Increases from 2 to 12+ enemies
+- **Enemy Stats:** Progressive bonuses to health and damage
+- **Ability Cooldowns:** Dash and Block cooldowns increase in later levels
+- **Player Health:** Decreases from 5 HP to 3 HP in later levels
+- **Safe Space:** Enemy spawn exclusion radius shrinks (4 tiles → 2 tiles)
+
+**Progression Features:**
+- Each level introduces new tactical challenges
+- Enemy combinations become more complex and coordinated
+- Later levels feature veteran undead with enhanced stats
+- Final level removes safety mechanics (no rewind ability)
+
+> **[IN PLANNING]** - See `LEVEL_SYSTEM_PLAN.md` for full technical implementation details
 
 ---
 
 ## Win/Loss Conditions
 
-> **[TO BE DEFINED]**
->
-> **Options:**
-> - Survive N turns/waves
-> - Defeat all enemies
-> - Reach extraction point
-> - Score threshold
-> - Last as long as possible (endless survival)
->
-> **Loss Condition:**
-> Player health reaches zero (currently implemented in combat system)
+### Victory
+**Per Level:** Defeat all skeletal enemies in the crypt chamber
+- Clear tactical combat puzzle
+- No time pressure, pure positioning and strategy
+- Progress to deeper crypt levels
+
+**Campaign Victory:** Complete all 8 levels
+- Congratulations screen
+- Unlock replay mode / level select
+- Statistics tracking (turns taken, enemies defeated, etc.)
+
+### Defeat
+**Player Death:** Health reaches zero
+- Immediate game over for current level
+- Option to restart current level
+- Return to level select (if unlocked)
+
+**No Permadeath:** Can retry any level
+- Levels remain unlocked once reached
+- Encourages experimentation and learning
+- Suits puzzle-like tactical nature
 
 ---
 
@@ -244,9 +335,12 @@ The engine supports these additional range patterns:
 - **MovementSystem** - Movement execution and combat triggers
 - **CombatSystem** - Damage calculation and resolution
 - **RangeSystem** - Attack range calculation and threat marking
-- **AnimationSystem** - Character animation states
+- **AnimationSystem** - Character animation states (skeleton animations, state transitions)
 - **DashSystem** - Dash ability logic
 - **BlockSystem** - Block ability logic
+- **GameStateManager** - Game state history and progression tracking
+- **UISystem** - User interface, HUD, ability cooldowns display
+- **VictorySystem** - Win condition detection (planned)
 
 ### Hex Grid Mathematics
 - **Cube Coordinates** - Vector3I for hex positions
@@ -258,117 +352,193 @@ The engine supports these additional range patterns:
 
 ## Future Features & Expansion Areas
 
-> **[TO BE FLESHED OUT]**
-
 ### Potential Feature Additions
 
+#### Medieval Fantasy Content
+- [ ] **More Undead Types:**
+  - Skeletal Champions (mini-bosses with unique abilities)
+  - Wraiths (phase through obstacles)
+  - Zombie Brutes (high HP, slow movement)
+  - Lich (boss enemy with spell variety)
+- [ ] **Equipment System:**
+  - Different weapons (sword, mace, spear) with varying ranges
+  - Armor types affecting mobility vs defense
+  - Magical artifacts with special effects
+- [ ] **Environmental Theming:**
+  - Different crypt types (burial chamber, throne room, torture chamber)
+  - Environmental storytelling through architecture
+  - Ancient treasure visible in background
+
 #### Gameplay Enhancements
-- [ ] More player abilities (cooldown-based special moves)
-- [ ] Power-ups or temporary buffs collected from tiles
-- [ ] Environmental hazards (lava, spikes, etc.)
-- [ ] Interactive map elements (doors, switches, teleporters)
-- [ ] Line-of-sight mechanics for stealth/visibility
-- [ ] Multiple playable characters with different abilities
-- [ ] Combo system for chaining actions
+- [ ] More player abilities (Holy Smite, Whirlwind Attack, Healing Prayer)
+- [ ] Consumables found in crypts (health potions, holy water, spell scrolls)
+- [ ] Environmental hazards (cursed tiles, collapsing floors, magical traps)
+- [ ] Interactive elements (lever-activated doors, teleportation circles, hidden paths)
+- [ ] Line-of-sight mechanics (hide behind pillars, ambush from darkness)
+- [ ] Combo system (reward aggressive multi-kill chains)
+- [ ] Multiple playable classes (Knight, Rogue, Cleric)
 
-#### Enemy Variety
-- [ ] Wizard enemy with AoE attacks (Explosion range)
-- [ ] Enemies with special behaviors (flee when low HP, summon allies)
-- [ ] Boss encounters with unique mechanics
-- [ ] Enemy combinations that synergize
+#### Progression & Replayability
+- [ ] New Game+ mode with remixed enemy placements
+- [ ] Challenge modes (no abilities, time attack, pacifist run)
+- [ ] Persistent upgrades between runs
+- [ ] Achievement/trophy system
+- [ ] Leaderboards and score tracking
+- [ ] Daily challenge crypts
 
-#### Progression Systems
-- [ ] Unlock new abilities between runs
-- [ ] Upgrade existing abilities (reduced cooldown, increased range)
-- [ ] Character customization / build variety
-- [ ] Persistent meta-progression currency
-- [ ] Daily challenges / seeded runs
+#### Polish & Atmosphere
+- [ ] Bone-shattering particle effects
+- [ ] Screen shake on heavy impacts
+- [ ] Dynamic camera tilt for dramatic moments
+- [ ] Medieval fantasy soundtrack (haunting strings, ominous choirs)
+- [ ] Combat sound effects (clashing swords, skeleton bone rattles)
+- [ ] Ambient crypt sounds (dripping water, distant moans, chains)
+- [ ] Death animations for player character
+- [ ] Victory pose animations
 
-#### Content
-- [ ] Multiple biomes/environments
-- [ ] Hand-crafted puzzle levels
-- [ ] Procedurally generated campaigns
-- [ ] Story mode with narrative beats
+#### UI/UX Improvements
+- [ ] Interactive tutorial level with tooltips
+- [ ] Visual ability cooldown timers
+- [ ] Turn counter display
+- [ ] Enemy intent indicators (show what they'll do next turn)
+- [ ] Undo last move (limited uses per level)
+- [ ] Pause menu with level restart option
+- [ ] Settings (volume, camera sensitivity, visual effects)
+- [ ] Codex with enemy lore and tactical tips
 
-#### Polish & Juice
-- [ ] Particle effects for abilities
-- [ ] Screen shake on impacts
-- [ ] Dynamic camera movements
-- [ ] Sound effects and music
-- [ ] Hit stop / freeze frames
-- [ ] Combo counters and score feedback
+#### Narrative Elements
+- [ ] Brief text intros for each level
+- [ ] Discoverable lore through environmental details
+- [ ] Mystery of why the dead won't stay dead
+- [ ] Optional story mode vs arcade mode
+- [ ] Ending cinematics based on performance
 
-#### UI/UX
-- [ ] Tutorial system
-- [ ] Ability cooldown indicators
-- [ ] Turn counter / wave display
-- [ ] Pause menu
-- [ ] Settings / options
-- [ ] Undo move feature (limited uses?)
-
-#### Multiplayer (Ambitious)
-- [ ] Local hot-seat multiplayer
-- [ ] Asynchronous turn-based multiplayer
-- [ ] Competitive puzzle challenges
+#### Advanced Features (Ambitious)
+- [ ] Procedural crypt generation mode (endless mode)
+- [ ] Custom level editor
+- [ ] Mod support for custom enemies/abilities
+- [ ] Asynchronous multiplayer challenge sharing
 
 ---
 
 ## Design Questions to Resolve
 
-### Immediate Priorities
-1. **Theme & Setting** - What is the world? Who are these combatants?
-2. **Win/Loss** - What are players trying to achieve?
-3. **Progression** - How does the game escalate in difficulty?
-4. **Content Scope** - How much content for initial release?
-
-### Balance Considerations
-1. Are current ability cooldowns balanced? (Dash: 4 turns, Block: 3 turns)
-2. Should there be health regeneration or is it fixed per run?
-3. How many enemies should spawn per wave/level?
-4. What should the difficulty curve look like?
-5. Should blocked tiles be destructible?
+### Balance & Tuning
+1. ✓ **Theme Established** - Medieval fantasy crypts with undead enemies
+2. Are ability cooldowns balanced across all 8 levels?
+3. Should player health regenerate between levels or carry over?
+4. Should there be checkpoints (every 2-3 levels)?
+5. Is the difficulty curve too steep or too gradual?
+6. Should blocked tiles (sarcophagi) sometimes contain surprises?
 
 ### Player Experience
-1. What is the target session length? (Quick 5-min runs vs longer campaigns)
-2. Should there be difficulty modes?
-3. How much randomness vs hand-crafted design?
-4. What metrics define "success" for a run?
+1. Target session length per level: 3-5 minutes or 5-10 minutes?
+2. Should there be difficulty modes (Easy/Normal/Hard)?
+3. How much procedural generation vs hand-crafted puzzles?
+4. Should there be a score/ranking system?
+5. Is level replay necessary or just "restart" and "continue"?
+
+### Content Questions
+1. Should the player character be a specific class or customizable?
+2. How much narrative/lore vs pure tactical gameplay?
+3. Environmental storytelling vs text exposition?
+4. Victory animations/cinematics for level completion?
 
 ---
 
 ## Development Roadmap
 
-> **[TO BE DEFINED]**
->
-> **Current State:** Core combat and ability systems functional
->
-> **Suggested Next Steps:**
-> 1. Define theme and visual direction
-> 2. Implement win/loss conditions
-> 3. Create initial progression system (waves or levels)
-> 4. Add Wizard enemy type
-> 5. Create tutorial level
-> 6. Balance pass on abilities and enemy difficulty
-> 7. Add sound effects and music
-> 8. Polish pass on animations and VFX
-> 9. Playtest and iterate
+### ✅ Completed (Current State)
+- Core tactical combat system with Hoplite-style reactive attacks
+- Hex-based grid movement and pathfinding
+- ECS architecture with organized component system
+- Dash and Block abilities with cooldowns
+- Multiple enemy types (Grunt, Sniper variants)
+- Skeleton enemy animations (Idle, Walk, Attack, Die, Spawn)
+- Animation system with state management
+- Visual feedback for movement and threat ranges
+- Medieval fantasy theme established
+
+### 🚧 In Progress / Planned
+1. **Level System Implementation** (See `LEVEL_SYSTEM_PLAN.md`)
+   - LevelDefinition data structure
+   - LevelManager service
+   - VictorySystem for win conditions
+   - Level transition UI
+   - All 8 levels configured
+
+2. **Player Character Visuals**
+   - Player character model (knight/warrior)
+   - Player animation states
+   - Dash and Block visual effects
+
+3. **Wizard Enemy Type**
+   - Complete implementation of AoE attack pattern
+   - Skeletal mage visual distinction
+   - Magic effect particles
+
+4. **UI Polish**
+   - Level select screen
+   - Game over and victory screens
+   - Ability cooldown visual indicators
+   - Health bars and status displays
+   - Tutorial tooltips
+
+5. **Audio**
+   - Medieval fantasy soundtrack
+   - Combat sound effects
+   - Ambient crypt atmosphere
+   - UI feedback sounds
+
+6. **Polish Pass**
+   - Particle effects (dust, magic, impacts)
+   - Screen shake on hits
+   - Better tile highlights and indicators
+   - Death animations refinement
+   - Camera improvements
+
+7. **Balancing & Playtesting**
+   - Test all 8 levels for difficulty
+   - Tune ability cooldowns
+   - Adjust enemy stats
+   - Iterate based on feedback
+
+### 🎯 Future Enhancements (Post-Launch)
+- Endless/procedural mode
+- Additional enemy types
+- Equipment/upgrade system
+- Challenge modes
+- Story/narrative expansion
 
 ---
 
 ## Conclusion
 
-Undergang has a solid tactical combat foundation with unique reactive combat mechanics that create engaging puzzle-like scenarios. The hex-based movement, multiple attack range patterns, and ability system provide deep strategic options.
+**Undergang: The Crypt of the Fallen** is a medieval fantasy turn-based tactics game with a strong tactical combat foundation. The unique Hoplite-style reactive combat mechanics create engaging puzzle-like scenarios where every movement matters. The hex-based grid, multiple enemy attack patterns, and cooldown-based abilities provide deep strategic gameplay.
 
-The next phase of development should focus on:
-1. **Establishing identity** - Theme, setting, and narrative context
-2. **Defining goals** - Win conditions and progression structure
-3. **Content creation** - More enemy types, maps, and scenarios
-4. **Polish** - Animations, effects, sound, and juice
+### Current Strengths
+- **Solid Core Systems** - Combat, movement, and abilities all functional
+- **Clear Theme** - Medieval fantasy crypts with undead skeleton enemies
+- **Structured Progression** - 8-level campaign with escalating difficulty planned
+- **Technical Foundation** - Modular ECS architecture supports easy expansion
+- **Visual Identity** - Skeleton animations and gothic atmosphere established
 
-The modular ECS architecture and flexible range system make it easy to add new enemy types and mechanics, positioning the game well for iterative development and experimentation.
+### Next Phase Priorities
+1. **Complete Level System** - Implement the 8-crypt campaign structure
+2. **Victory & Game Over** - Win conditions and level transitions
+3. **Player Visuals** - Character model and animations
+4. **Audio Integration** - Music and sound effects for atmosphere
+5. **UI Polish** - Menus, HUD, and feedback systems
+6. **Balance & Testing** - Playtest all levels and tune difficulty
+
+### Vision
+
+Undergang aims to deliver tight, strategic turn-based combat in a dark fantasy setting. Each of the eight crypt levels presents a unique tactical puzzle where players must use positioning, timing, and limited abilities to overcome increasingly dangerous undead guardians. The game combines the tactical depth of Hoplite with the atmospheric storytelling of classic dungeon crawlers.
+
+The modular architecture and clear design direction position Undergang well for focused development toward a polished, complete experience.
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2025-12-22
-**Status:** Living document - sections marked [TO BE FLESHED OUT] require additional design work
+**Document Version:** 2.0
+**Last Updated:** 2025-12-23
+**Status:** Medieval fantasy theme established, level progression planned, core systems implemented
