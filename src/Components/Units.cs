@@ -14,6 +14,7 @@ namespace Game.Components
     public readonly record struct SniperAxisQ();
     public readonly record struct SniperAxisR();
     public readonly record struct SniperAxisS();
+    public readonly record struct Grenadier();
 
     /// <summary>
     /// Unit type component storing the specific unit type

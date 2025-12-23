@@ -74,11 +74,14 @@ namespace Game
 
             // Unit components
             typeof(Player), typeof(Enemy), typeof(Grunt), typeof(Wizard),
-            typeof(SniperAxisQ), typeof(SniperAxisR), typeof(SniperAxisS), typeof(Unit),
+            typeof(SniperAxisQ), typeof(SniperAxisR), typeof(SniperAxisS), typeof(Grenadier), typeof(Unit),
 
             // Range components
             typeof(RangeCircle), typeof(RangeDiagonal), typeof(RangeExplosion),
             typeof(RangeHex), typeof(RangeNGon), typeof(RangeAxisQ), typeof(RangeAxisR), typeof(RangeAxisS),
+
+            // Bomb components
+            typeof(Bomb), typeof(BombTimer), typeof(BombExplosionRadius),
 
             // State components
             typeof(TurnOrder)

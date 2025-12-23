@@ -46,4 +46,10 @@ public record Config
 
     // UI settings
     public const int TileSelectDurationMs = 500;
+
+    // Grenadier/Bomb settings
+    public const int GrenadierThrowRange = 3;      // How far grenadier can throw bombs
+    public const int BombExplosionRadiusValue = 2; // Explosion radius
+    public const int BombTimerTurns = 1;           // Turns before bomb explodes
+    public const int BombDamage = 2;               // Damage dealt by bomb explosion
 }

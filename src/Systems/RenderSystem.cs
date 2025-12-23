@@ -76,6 +76,7 @@ namespace Game
 			return unitType switch
 			{
 				UnitType.Wizard => "res://src/Scenes/Wizard.tscn",
+			UnitType.Grenadier => "res://src/Scenes/Wizard.tscn",
 				UnitType.SniperAxisQ => "res://src/Scenes/Sniper.tscn",
 				UnitType.SniperAxisR => "res://src/Scenes/Sniper.tscn",
 				UnitType.SniperAxisS => "res://src/Scenes/Sniper.tscn",
@@ -160,5 +161,38 @@ namespace Game
 				};
 			}
 		}
+
+	/// <summary>
+	/// Creates a visual representation for a bomb entity
+	/// </summary>
+	public void SpawnBombVisual(Entity bomb)
+	{
+		if (!bomb.Has<Bomb>() || !bomb.Has<Coordinate>())
+			return;
+
+		// Create a simple sphere mesh to represent the bomb
+		var bombNode = new MeshInstance3D
+		{
+			Name = bomb.Get<Name>(),
+			Mesh = new SphereMesh { Radius = 0.3f, Height = 0.6f }
+		};
+
+		// Create a material for the bomb (dark gray/black)
+		var material = new StandardMaterial3D
+		{
+			AlbedoColor = new Color(0.2f, 0.2f, 0.2f, 1.0f),
+			Metallic = 0.5f,
+			Roughness = 0.3f
+		};
+		bombNode.MaterialOverride = material;
+
+		// Update the bomb's instance
+		bomb.Update(new Instance(bombNode));
+
+		// Add to unit container and position it
+		_unitContainer.AddChild(bombNode);
+		bombNode.Position = HexGrid.HexToWorld(bomb.Get<Coordinate>());
+	}
 	}
 }
+

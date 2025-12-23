@@ -32,4 +32,26 @@ namespace Game.Components
     {
         public static implicit operator int(AttackRangeTile range) => range.Value;
     }
+
+    // Bomb-related components
+    /// <summary>
+    /// Marker component for bomb entities
+    /// </summary>
+    public readonly record struct Bomb();
+
+    /// <summary>
+    /// Tracks the number of turns before the bomb explodes
+    /// </summary>
+    public record struct BombTimer(int Value)
+    {
+        public static implicit operator int(BombTimer timer) => timer.Value;
+    }
+
+    /// <summary>
+    /// Radius of the bomb's explosion
+    /// </summary>
+    public record struct BombExplosionRadius(int Value)
+    {
+        public static implicit operator int(BombExplosionRadius radius) => radius.Value;
+    }
 }

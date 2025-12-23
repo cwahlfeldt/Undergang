@@ -10,9 +10,11 @@ namespace Game
     public class EnemySystem : System
     {
         private TurnSystem _turnSystem;
+        private RenderSystem _renderSystem;
 
         public override void Initialize()
         {
+            _renderSystem = Systems.Get<RenderSystem>();
             _turnSystem = Systems.Get<TurnSystem>();
             Events.TurnChanged += OnTurnChanged;
         }
@@ -31,6 +33,13 @@ namespace Game
 
                 var enemyCoord = unit.Get<Coordinate>();
                 var playerCoord = player.Get<Coordinate>();
+
+                // Special handling for Grenadiers - they throw bombs instead of attacking
+                if (unit.Has<Grenadier>())
+                {
+                    HandleGrenadierTurn(unit, enemyCoord, playerCoord);
+                    return;
+                }
 
                 // Check if player is in attack range
                 var attackRangeTiles = RangeSystem.GetAttackRangeTiles(unit, enemyCoord);
@@ -72,6 +81,47 @@ namespace Game
                 GD.PrintErr($"[EnemySystem] Error during {unit.Get<Name>()} turn: {ex.Message}\n{ex.StackTrace}");
                 // Try to recover by passing the turn
                 _turnSystem.ExecuteEnemyPass(unit);
+            }
+        }
+
+        /// <summary>
+        /// Handles Grenadier turn - throws bombs toward player
+        /// </summary>
+        private void HandleGrenadierTurn(Entity grenadier, Vector3I grenadierCoord, Vector3I playerCoord)
+        {
+            // Get all tiles within throwing range
+            var throwRange = HexGrid.GetHexesInRange(grenadierCoord, Config.GrenadierThrowRange);
+
+            // Find the best tile to throw the bomb - closest to player within range
+            var validThrowTargets = throwRange
+                .Where(coord =>
+                {
+                    var tile = Entities.GetAt(coord);
+                    return tile != null && tile.Has<Traversable>();
+                })
+                .ToList();
+
+            if (validThrowTargets.Any())
+            {
+                // Throw bomb at tile closest to player
+                var targetCoord = validThrowTargets
+                    .OrderBy(coord => HexGrid.GetDistance(coord, playerCoord))
+                    .First();
+
+                GD.Print($"[EnemySystem] Grenadier at {grenadierCoord} throws bomb to {targetCoord}!");
+
+                // Create bomb at target position
+                var bomb = Entities.Factory.CreateBomb(targetCoord);
+                _renderSystem.SpawnBombVisual(bomb);
+
+                // Complete turn
+                _turnSystem.ExecuteEnemyPass(grenadier);
+            }
+            else
+            {
+                // No valid targets, just pass
+                GD.Print($"[EnemySystem] Grenadier at {grenadierCoord} has no valid throw targets, passing turn");
+                _turnSystem.ExecuteEnemyPass(grenadier);
             }
         }
 

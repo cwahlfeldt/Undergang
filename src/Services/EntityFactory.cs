@@ -115,6 +115,13 @@ namespace Game
                     enemy.Add(new Health(1));
                     break;
 
+                case UnitType.Grenadier:
+                    enemy.Add(new Grenadier());
+                    enemy.Add(new RangeExplosion()); // Uses explosion range for throw targeting
+                    enemy.Add(new Damage(1));
+                    enemy.Add(new Health(2)); // Slightly tankier
+                    break;
+
                 default:
                     // Default to Grunt behavior
                     enemy.Add(new Grunt());
@@ -128,6 +135,24 @@ namespace Game
             enemy.Add(new AttackRange(1));
 
             return enemy;
+        }
+
+        public Entity CreateBomb(Vector3I position, int explosionRadius = -1, int timer = -1)
+        {
+            explosionRadius = explosionRadius == -1 ? Config.BombExplosionRadiusValue : explosionRadius;
+            timer = timer == -1 ? Config.BombTimerTurns : timer;
+
+            var bomb = _entities.AddEntity(new Entity(_entities.GetNextId()));
+
+            bomb.Add(new Name($"Bomb at {position}"));
+            bomb.Add(new Bomb());
+            bomb.Add(new Instance(new Node3D()));
+            bomb.Add(new Coordinate(position));
+            bomb.Add(new BombTimer(timer));
+            bomb.Add(new BombExplosionRadius(explosionRadius));
+            bomb.Add(new Damage(Config.BombDamage));
+
+            return bomb;
         }
 
         private Entity GetRandomTileEntity()

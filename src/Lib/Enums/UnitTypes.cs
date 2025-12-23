@@ -6,5 +6,6 @@ public enum UnitType
     Wizard,
     SniperAxisQ,
     SniperAxisR,
-    SniperAxisS
+    SniperAxisS,
+    Grenadier
 }
