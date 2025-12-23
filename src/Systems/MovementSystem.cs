@@ -29,10 +29,13 @@ namespace Game
             var origin = mover.Get<Coordinate>();
             var path = PathFinder.FindPath(origin, destination, mover.Get<MoveRange>());
 
+            GD.Print($"[MovementSystem] {mover.Get<Name>()} from {origin} to {destination}, path count: {path?.Count ?? 0}");
+
             // Handle case where no valid path exists (destination unreachable or occupied)
             if (path == null || path.Count == 0)
             {
                 // No movement possible - fire event with current position and return
+                GD.Print($"[MovementSystem] {mover.Get<Name>()} - no path found!");
                 Events.OnMoveCompleted(mover, origin, origin);
                 return false;
             }

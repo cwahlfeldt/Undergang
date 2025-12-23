@@ -34,9 +34,12 @@ namespace Game
             var attackRangeTiles = RangeSystem.GetAttackRangeTiles(unit, enemyCoord);
             bool playerInRange = attackRangeTiles.Contains(playerCoord);
 
+            GD.Print($"[EnemySystem] {unit.Get<Name>()} at {enemyCoord} - player at {playerCoord}, playerInRange: {playerInRange}");
+
             if (playerInRange)
             {
                 // Pass turn - player already in range
+                GD.Print($"[EnemySystem] {unit.Get<Name>()} passing turn (player in range)");
                 _turnSystem.ExecuteEnemyPass(unit);
             }
             else
@@ -50,9 +53,11 @@ namespace Game
                 }
                 else
                 {
-                    targetPosition = playerCoord;  // Grunt: move toward player
+                    // Grunt: find best tile to move toward player
+                    targetPosition = FindGruntTargetPosition(unit, enemyCoord, playerCoord, unit.Get<MoveRange>());
                 }
 
+                GD.Print($"[EnemySystem] {unit.Get<Name>()} moving to {targetPosition}");
                 // Execute movement
                 await _turnSystem.ExecuteEnemyAction(unit, targetPosition);
             }
@@ -67,6 +72,44 @@ namespace Game
                    unit.Has<SniperAxisQ>() ||
                    unit.Has<SniperAxisR>() ||
                    unit.Has<SniperAxisS>();
+        }
+
+        /// <summary>
+        /// Find the best tile for a Grunt to move toward the player.
+        /// Picks the unoccupied tile within move range that gets closest to the player.
+        /// </summary>
+        private Vector3I FindGruntTargetPosition(Entity grunt, Vector3I gruntCoord, Vector3I playerCoord, int moveRange)
+        {
+            // Get all tiles within move range
+            var reachableTiles = HexGrid.GetHexesInRange(gruntCoord, moveRange);
+
+            // Find the best tile: unoccupied, traversable, and closest to player
+            Vector3I bestTile = gruntCoord;
+            int bestDistance = HexGrid.GetDistance(gruntCoord, playerCoord);
+
+            foreach (var pos in reachableTiles)
+            {
+                // Skip current position
+                if (pos == gruntCoord)
+                    continue;
+
+                var tile = Entities.GetAt(pos);
+                if (tile == null || !tile.Has<Traversable>())
+                    continue;
+
+                // Check if occupied
+                if (Entities.IsTileOccupied(pos))
+                    continue;
+
+                int distance = HexGrid.GetDistance(pos, playerCoord);
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestTile = pos;
+                }
+            }
+
+            return bestTile;
         }
 
         /// <summary>

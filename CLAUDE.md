@@ -42,12 +42,19 @@ Systems are managed by the `Systems` class (`src/Services/Systems.cs`) and can b
 
 Key systems include:
 
-- `TurnSystem`: Manages turn order and progression
-- `PlayerSystem`: Handles player input and actions
+- `TurnSystem`: Manages turn order and progression, integrates with GameStateManager for snapshots
+- `PlayerSystem`: Handles player input and tile selection
 - `EnemySystem`: AI behavior for enemy units
-- `MovementSystem`: Handles unit movement on the hex grid
-- `CombatSystem`: Manages combat resolution
-- `RenderSystem`: Visual representation of game state
+- `MovementSystem`: Handles unit movement on the hex grid, integrates combat triggers
+- `CombatSystem`: Manages combat resolution and damage application
+- `DashSystem`: Player dash ability with cooldown management
+- `BlockSystem`: Player block ability (negates next attack)
+- `GameStateManager`: Complete game state snapshots and time rewind functionality
+- `RangeSystem`: Attack range calculations and threat zone marking
+- `AnimationSystem`: State-based animation controller
+- `RenderSystem`: Visual representation of game state and input handling
+- `UISystem`: Health display, ability buttons, and FPS counter
+- `TileHighlightSystem`: Tile highlighting and mesh caching
 
 ### Hex Grid System
 
@@ -62,7 +69,8 @@ The game uses a hex-based coordinate system (`src/Lib/HexGrid.cs`) with:
 - **Events**: Global event system for decoupled communication (`src/Services/Events.cs`)
 - **Entities**: Entity storage, management, and queries (`src/Services/Entities.cs`)
 - **EntityFactory**: Entity creation (grid, tiles, units) - accessed via `Entities.Factory` (`src/Services/EntityFactory.cs`)
-- **PathFinder**: A\* pathfinding on the hex grid (`src/Services/PathFinder.cs`)
+- **GameStateManager**: Comprehensive game state snapshot and time manipulation system (`src/Services/GameStateManager.cs`)
+- **PathFinder**: A* pathfinding on the hex grid (`src/Services/PathFinder.cs`)
 - **Materials**: Material management for visual effects (`src/Services/Materials.cs`)
 - **Tweener**: Animation and interpolation system (`src/Services/Tweener.cs`)
 - **Systems**: System registry and lifecycle management (`src/Services/Systems.cs`)
@@ -82,11 +90,11 @@ Components are organized by domain in separate files for better maintainability:
 
 **File Structure:**
 
-- `src/Components/Core.cs` - Tile, Instance, Name, Coordinate, TileIndex
-- `src/Components/Combat.cs` - Health, Damage, AttackRange, Attacker, Target
-- `src/Components/Movement.cs` - Movement, MoveRange
-- `src/Components/Range.cs` - RangeCircle, RangeDiagonal, RangeExplosion, RangeHex, RangeNGon
-- `src/Components/Units.cs` - Player, Enemy, Grunt, Sniper, Unit
+- `src/Components/Core.cs` - Tile, Traversable, Untraversable, Instance, Name, Coordinate, TileIndex
+- `src/Components/Combat.cs` - Health, Damage, AttackRange, Attacker, Target, AttackRangeTile
+- `src/Components/Movement.cs` - Movement, MoveRange, DashCooldown, DashModeActive, DashRangeTile, BlockCooldown, BlockActive
+- `src/Components/Range.cs` - RangeCircle, RangeDiagonal, RangeExplosion, RangeHex, RangeNGon, RangeAxisQ/R/S
+- `src/Components/Units.cs` - Player, Enemy, Grunt, Wizard, SniperAxisQ/R/S, Unit
 - `src/Components/State.cs` - CurrentTurn, Active, TurnOrder, WaitingForAction, SelectedTile
 - `src/Components/Animation.cs` - CurrentAnimation, AnimationPlayer
 
@@ -450,6 +458,379 @@ Enable verbose logging to trace:
 
 ---
 
+## Player Abilities System
+
+The game features special abilities that add tactical depth beyond basic movement and combat.
+
+### Dash Ability
+
+**Purpose**: Quick escape or repositioning - move 2 tiles in any direction, bypassing enemies without triggering combat.
+
+**Key Files**:
+- `src/Systems/DashSystem.cs` - Dash logic and cooldown management
+- `src/Components/Movement.cs` - DashCooldown, DashModeActive, DashRangeTile components
+- `src/Config.cs` - Dash configuration constants
+
+**Mechanics**:
+1. **Activation**: Player toggles dash mode (D key or UI button)
+2. **Range**: All traversable tiles within radius of 2 (configurable via `Config.DashRange`)
+3. **No Combat**: Dashing does NOT trigger enemy attacks (unlike normal movement)
+4. **Cooldown**: 4 turns after use (configurable via `Config.DashCooldown`)
+5. **Visual Feedback**: Tiles in dash range are highlighted differently
+
+**Configuration**:
+```csharp
+Config.DashRange = 2;              // Dash distance
+Config.DashCooldown = 4;           // Turns before dash available again
+Config.DashAnimationSpeed = 0.25f; // Animation duration
+```
+
+**Usage**:
+```csharp
+// Check if dash is available
+bool canDash = _dashSystem.IsDashAvailable(player);
+int cooldown = _dashSystem.GetRemainingCooldown(player);
+
+// Toggle dash mode
+_dashSystem.ToggleDashMode();
+
+// Execute dash (called automatically by TurnSystem)
+await _movementSystem.ExecuteDash(player, destination);
+```
+
+**Cooldown Management**:
+- Cooldown starts AFTER dash is used
+- Cooldown ticks down at the START of each player turn
+- UI shows cooldown counter when ability is unavailable
+
+### Block Ability
+
+**Purpose**: Defensive ability that negates the next incoming attack.
+
+**Key Files**:
+- `src/Systems/BlockSystem.cs` - Block logic and cooldown management
+- `src/Components/Movement.cs` - BlockCooldown, BlockActive components
+- `src/Systems/CombatSystem.cs` - Block consumption logic
+
+**Mechanics**:
+1. **Activation**: Player toggles block on/off (B key or UI button)
+2. **Persistence**: Block stays active until consumed by an attack
+3. **Consumption**: First incoming attack is negated, block is removed, cooldown starts
+4. **Cooldown**: 3 turns after block is consumed (configurable via `Config.BlockCooldown`)
+5. **Visual Feedback**: UI button glows when block is active
+
+**Configuration**:
+```csharp
+Config.BlockCooldown = 3;  // Turns before block available again
+```
+
+**Usage**:
+```csharp
+// Check if block is available
+bool canBlock = _blockSystem.IsBlockAvailable(player);
+bool isActive = _blockSystem.IsBlockActive(player);
+int cooldown = _blockSystem.GetRemainingCooldown(player);
+
+// Toggle block
+_blockSystem.ToggleBlock();
+
+// Consume block (called automatically by CombatSystem)
+_blockSystem.ConsumeBlock(player);
+```
+
+**Important Notes**:
+- Block can be toggled OFF before being consumed (no cooldown penalty)
+- Cooldown only starts AFTER block is consumed by an attack
+- Block persists across turns until consumed
+- Only ONE attack is blocked, then cooldown begins
+
+### UI Integration
+
+Both abilities have dedicated UI buttons managed by `UISystem`:
+
+**Visual States**:
+- **Available**: Full color, clickable
+- **Active** (Dash mode or Block active): Bright highlight, special styling
+- **Cooldown**: Grayed out, shows "Cooldown: X" label
+
+**Keyboard Shortcuts**:
+- `D` key: Toggle dash mode
+- `B` key: Toggle block
+
+---
+
+## Game State Management & Rewind System
+
+The game features a comprehensive time manipulation system that allows players to rewind turns, implemented through the `GameStateManager`.
+
+### Architecture Overview
+
+**Key File**: `src/Services/GameStateManager.cs`
+
+The GameStateManager is the **single source of truth** for game state snapshots and time manipulation:
+
+**Core Responsibilities**:
+1. Capture complete game state at turn boundaries
+2. Store snapshot history (up to 100 turns, configurable)
+3. Restore previous game states with animations
+4. Manage rewind cooldown and availability
+
+**Philosophy**: Centralized snapshot management - all snapshot logic lives in GameStateManager, not scattered across systems.
+
+### Snapshot System
+
+#### What Gets Captured
+
+**Tier 1 - Persistent Gameplay State** (ALWAYS captured):
+```csharp
+// Core components
+Tile, Traversable, Untraversable, Coordinate, TileIndex, Name
+
+// Combat components
+Health, Damage, AttackRange
+
+// Movement & abilities
+MoveRange, DashCooldown, BlockCooldown, BlockActive
+
+// Unit identity
+Player, Enemy, Grunt, Wizard, SniperAxisQ/R/S, Unit
+
+// Range patterns
+RangeCircle, RangeDiagonal, RangeHex, RangeExplosion, RangeNGon, RangeAxisQ/R/S
+
+// Turn management
+TurnOrder
+```
+
+**Tier 2 - Transient State** (NOT captured - rebuilt on restore):
+```csharp
+// Godot visual nodes
+Instance, AnimationPlayer
+
+// UI state
+CurrentAnimation, CurrentTurn, WaitingForAction, SelectedTile
+
+// Derived state (recalculated)
+AttackRangeTile, DashRangeTile, Movement
+```
+
+#### Snapshot Timing
+
+**Capture Trigger**: At the **START** of player's turn (BEFORE they act)
+
+```csharp
+// In TurnSystem.StartUnitTurn()
+if (unit.Has<Player>())
+{
+    _gameStateManager.CaptureSnapshot(_currentTurnIndex);
+}
+```
+
+**Why start of turn?**
+- Captures state BEFORE player makes mistakes
+- Ensures health, position, abilities all captured correctly
+- Allows rewinding to undo the action they're about to take
+
+#### Snapshot Data Structure
+
+```csharp
+public record GameStateSnapshot
+{
+    public int TurnNumber { get; init; }
+    public DateTime CapturedAt { get; init; }
+    public int NextEntityId { get; init; }             // Entity ID counter
+    public int CurrentTurnIndex { get; init; }         // Turn order position
+    public IReadOnlyList<EntityStateSnapshot> Entities { get; init; }
+    public int UnitCount { get; init; }                // Metadata for debugging
+    public int TileCount { get; init; }
+}
+
+public record EntityStateSnapshot
+{
+    public int EntityId { get; init; }
+    public bool IsUnit { get; init; }
+    public Vector3I? AnimationOrigin { get; init; }    // Position to animate FROM
+    public IReadOnlyDictionary<Type, object> Components { get; init; }
+}
+```
+
+### Rewind Functionality
+
+#### Basic Rewind (One Turn Back)
+
+```csharp
+// Rewind to previous turn
+var result = await _gameStateManager.RewindOneTurn();
+
+if (result.Success)
+{
+    GD.Print($"Rewound to turn {result.TurnRewindedTo}");
+    GD.Print($"Respawned {result.RespawnedUnitIds.Count} units");
+}
+else
+{
+    GD.Print($"Rewind failed: {result.FailureReason}");
+}
+```
+
+#### Advanced Rewind (Specific Turn)
+
+```csharp
+// Rewind to a specific turn number
+var result = await _gameStateManager.RewindToTurn(turnNumber: 5);
+```
+
+#### Rewind Process (10 Steps)
+
+1. **Validation**: Check cooldown, player alive, snapshot exists
+2. **Identification**: Find units that need respawning (dead in current state, alive in snapshot)
+3. **Animation**: Smoothly animate existing units back to snapshot positions
+4. **State Restoration**:
+   - Remove all current unit nodes
+   - Reset entity ID counter
+   - Recreate units from snapshot
+   - Restore tile components (keep visual nodes)
+5. **Visual Rebuild**: Instantiate Godot scenes for all units
+6. **Input Setup**: Reattach mouse/click handlers to units
+7. **Fade Effects**: Apply fade-in animation to respawned units
+8. **Derived State**: Recalculate ranges, pathfinding, etc.
+9. **Cleanup**: Clear mesh caches, set animations to Idle
+10. **History Management**: Remove future snapshots (no redo), start cooldown, restart turn
+
+#### Rewind Configuration
+
+```csharp
+Config.RewindCooldownTurns = 3;         // Turns to wait between rewinds
+Config.MaxHistoryDepth = 100;           // Max snapshots retained
+Config.RewindAnimationSpeed = 0.3f;     // Animation duration
+Config.RespawnFadeInDuration = 0.5f;    // Fade-in effect for respawned units
+```
+
+### Rewind Availability
+
+**Requirements for rewind**:
+1. At least 2 snapshots exist (current turn + previous turn)
+2. Cooldown is 0 (not recently rewound)
+3. Player is alive
+
+```csharp
+bool canRewind = _gameStateManager.CanRewind;
+int cooldown = _gameStateManager.CooldownRemaining;
+int historyDepth = _gameStateManager.HistoryDepth;
+```
+
+**Cooldown Management**:
+- Starts AFTER successful rewind
+- Ticks down at START of each player turn
+- Prevents spam rewinding (maintains challenge)
+
+### Visual Effects
+
+**Rewind Animations**:
+1. **Position Interpolation**: Units smoothly glide back to previous positions
+2. **Respawn Fade-In**: Dead units fade in from transparent to opaque
+3. **Mesh Cache Clear**: Ensures fresh tile highlights after rewind
+
+**UI Indicators**:
+- Rewind button shows history depth: "REWIND (5)" means 5 snapshots available
+- Cooldown counter: "Cooldown: 3" shows turns remaining
+- Disabled state when no snapshots exist
+
+### Integration with Systems
+
+**TurnSystem Integration**:
+```csharp
+// Capture snapshot at start of player's turn
+_gameStateManager.CaptureSnapshot(_currentTurnIndex);
+
+// Tick cooldown each player turn
+_gameStateManager.TickCooldown();
+
+// Restart turn after rewind
+public void RestartPlayerTurn(int restoredTurnIndex)
+{
+    _currentTurnIndex = restoredTurnIndex;
+    player.Add(new CurrentTurn());
+    player.Add(new WaitingForAction());
+    Events.OnTurnChanged(player);
+}
+```
+
+**UISystem Integration**:
+```csharp
+// Rewind button press
+if (_gameStateManager.CanRewind)
+{
+    await _gameStateManager.RewindOneTurn();
+    UpdateRewindButtonState();
+}
+```
+
+### Memory Management
+
+**Snapshot Lifecycle**:
+- History is capped at `Config.MaxHistoryDepth` (default: 100 snapshots)
+- Oldest snapshots automatically pruned when limit reached
+- Each snapshot stores full entity state (components only, not visual nodes)
+
+**Visual Node Management**:
+- Old unit nodes freed using `Free()` (immediate, not `QueueFree()`)
+- Prevents memory leaks during rewind
+- Tiles keep their visual nodes (only components reset)
+
+### Debugging & Diagnostics
+
+**GameStateManager Logging**:
+```
+[GameStateManager] Captured snapshot: Turn 5, 4 units, 169 tiles, History depth: 6
+[GameStateManager] === REWINDING to Turn 4 ===
+[GameStateManager] Respawning 1 units
+[GameStateManager] Animating unit 42 from (0, 2, -2) to (0, 3, -3)
+[GameStateManager] Restored 173 entities
+[GameStateManager] Rebuilt Grunt_1 at (1, 1, -2)
+[GameStateManager] === REWIND COMPLETE ===
+```
+
+**Snapshot Inspection**:
+```csharp
+// Get read-only snapshot history
+var history = _gameStateManager.GetHistory();
+
+// Peek at specific snapshot
+var lastSnapshot = _gameStateManager.PeekSnapshot(turnsBack: 0);
+var twoTurnsAgo = _gameStateManager.PeekSnapshot(turnsBack: 2);
+```
+
+### Edge Cases & Failure Modes
+
+**Rewind Blocked When**:
+- No snapshots exist (first turn of game)
+- Only 1 snapshot exists (need current + previous)
+- Cooldown active (recently rewound)
+- Player is dead (game over state)
+
+**Respawn Logic**:
+- Defeated enemies are fully restored (health, position, abilities)
+- Visual fade-in effect distinguishes respawned units
+- All component state matches snapshot exactly
+
+### Best Practices
+
+**DO**:
+- ✅ Capture snapshots at START of player turn (before action)
+- ✅ Store only Tier 1 components (gameplay state)
+- ✅ Rebuild Tier 2 components (visual/derived state) on restore
+- ✅ Use `Free()` for immediate node cleanup
+- ✅ Recalculate ranges/pathfinding after restore
+
+**DON'T**:
+- ❌ Capture snapshots mid-action (capture BEFORE action)
+- ❌ Store visual nodes in snapshots (rebuild them)
+- ❌ Use `QueueFree()` for unit nodes (causes stale references)
+- ❌ Skip derived state recalculation (causes desyncs)
+
+---
+
 ## Additional Documentation
 
 ### Architecture & Patterns
@@ -470,28 +851,83 @@ Enable verbose logging to trace:
 
 ## Summary
 
-Undergang is a well-structured turn-based tactical game using a hybrid ECS architecture. The codebase has been recently refactored (Phases 1-3) for improved maintainability, with centralized configuration, organized components, and clear separation between entity creation and management.
+Undergang is a well-structured turn-based tactical game using a hybrid ECS architecture with comprehensive game state management. The codebase features centralized configuration, organized components, player abilities, and time manipulation mechanics.
 
-**Key strengths:**
+**Key Features:**
 
-- Clean component-based design
-- Flexible range system supporting multiple attack patterns
-- Hoplite-style tactical combat mechanics
-- Ready for Mixamo character integration
-- Well-documented codebase with clear patterns
+- **Hybrid ECS Architecture**: Clean component-based design with explicit turn orchestration
+- **Hoplite-Style Combat**: Reactive enemy attacks, player counter-attacks, positioning-based tactics
+- **Player Abilities**: Dash (escape/reposition) and Block (negate attacks) with cooldown management
+- **Time Rewind System**: Full game state snapshots with animated replay and enemy respawning
+- **Flexible Range System**: Multiple attack patterns (circle, diagonal, hex ring, explosion, n-gon, axis-based)
+- **Animation System**: State-based animations ready for Mixamo character integration
+- **Comprehensive UI**: Health display, ability buttons with cooldowns, rewind interface, FPS counter
 
-**For new developers:**
+**Current Game Loop:**
 
-1. Start by reading this file completely
-2. Review `ARCHITECTURE.md` for turn flow patterns
-3. Explore `src/Components/` to understand data structures
-4. Look at `src/Systems/` for game logic
-5. Check `Config.cs` for game constants
+1. Player turn starts → GameStateManager captures snapshot
+2. Player chooses action: move, dash, or block
+3. Movement triggers combat (enemy reactive attacks, player counter-attacks)
+4. Abilities tick cooldowns
+5. Enemy turns execute (move toward player or pass)
+6. Repeat
+7. Player can rewind to undo mistakes (with cooldown penalty)
 
-**When making changes:**
+**Architecture Strengths:**
 
-- Use Config constants, never hardcode values
-- Add components to appropriate domain file
-- Use EntityFactory for entity creation
-- Follow existing patterns for consistency
-- See `ARCHITECTURE.md` for recommended turn orchestration approach
+- **Centralized State Management**: GameStateManager owns all snapshot logic
+- **Component Organization**: Domain-focused files (Core, Combat, Movement, Range, Units, State, Animation)
+- **Configuration-Driven**: All game constants in Config.cs (no magic numbers)
+- **Event System**: Notifications only, not control flow (direct orchestration for turns)
+- **Memory Efficient**: Immediate node cleanup, capped snapshot history, component-only storage
+
+**For New Developers:**
+
+1. **Start here**: Read this CLAUDE.md completely
+2. **Architecture**: Review `ARCHITECTURE.md` for turn flow patterns
+3. **Components**: Explore `src/Components/` to understand data structures
+4. **Systems**: Study `src/Systems/` for game logic (start with TurnSystem, GameStateManager)
+5. **Configuration**: Check `Config.cs` for all game constants
+6. **Combat**: Read Combat System section to understand Hoplite mechanics
+7. **Rewind**: Study GameStateManager section for snapshot system
+
+**When Making Changes:**
+
+**✅ DO:**
+- Use Config constants (never hardcode values)
+- Add components to appropriate domain file (Core, Combat, Movement, etc.)
+- Use EntityFactory for entity creation (`Entities.Factory.CreateX()`)
+- Capture Tier 1 components in GameStateManager when adding new gameplay state
+- Follow existing patterns (readonly record structs, implicit operators)
+- Add XML comments for public methods
+- Test with rewind feature (ensure new state captured/restored correctly)
+
+**❌ DON'T:**
+- Hardcode game values (use Config constants)
+- Create entities manually (use EntityFactory)
+- Store visual nodes in snapshots (rebuild on restore)
+- Add components without considering snapshot system
+- Use events for control flow (use direct orchestration)
+- Skip testing abilities + rewind interaction
+
+**Key Systems to Understand:**
+
+1. **TurnSystem** - Turn order, action orchestration, snapshot triggers
+2. **GameStateManager** - State snapshots, rewind, history management
+3. **MovementSystem** - Movement, dash, combat triggers
+4. **CombatSystem** - Damage, block consumption, defeat handling
+5. **DashSystem** - Dash mode, range calculation, cooldown
+6. **BlockSystem** - Block activation, consumption, cooldown
+7. **RangeSystem** - Threat zones, range patterns, derived state
+8. **UISystem** - Health, ability buttons, rewind UI
+
+**Testing Checklist for New Features:**
+
+- [ ] Does it work with basic gameplay?
+- [ ] Does it work with Dash ability?
+- [ ] Does it work with Block ability?
+- [ ] Does it work with Rewind (state captured/restored correctly)?
+- [ ] Are Config constants used (no hardcoded values)?
+- [ ] Is state added to GameStateManager._capturedComponentTypes if needed?
+- [ ] Does UI update correctly?
+- [ ] Are there memory leaks (check node cleanup)?

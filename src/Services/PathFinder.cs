@@ -44,14 +44,39 @@ namespace Game
             if (!_tiles.TryGetValue(from, out var fromTile) || !_tiles.TryGetValue(to, out var toTile))
                 return [];
 
-
             int fromIndex = fromTile.Get<TileIndex>();
             int toIndex = toTile.Get<TileIndex>();
 
             if (!_astar.HasPoint(fromIndex) || !_astar.HasPoint(toIndex))
                 return [];
 
+            // Temporarily connect the starting tile to its unoccupied neighbors
+            // This allows units to path FROM their current (occupied) position
+            var tempConnections = new List<int>();
+            foreach (var dir in HexGrid.Directions.Values)
+            {
+                var neighborCoord = from + dir;
+                if (_tiles.TryGetValue(neighborCoord, out var neighborTile))
+                {
+                    int neighborIndex = neighborTile.Get<TileIndex>();
+                    if (_astar.HasPoint(neighborIndex) &&
+                        !_astar.ArePointsConnected(fromIndex, neighborIndex) &&
+                        !_entities.IsTileOccupied(neighborCoord))
+                    {
+                        _astar.ConnectPoints(fromIndex, neighborIndex);
+                        tempConnections.Add(neighborIndex);
+                    }
+                }
+            }
+
             var path = _astar.GetPointPath(fromIndex, toIndex);
+
+            // Restore original state - disconnect temporary connections
+            foreach (var neighborIndex in tempConnections)
+            {
+                _astar.DisconnectPoints(fromIndex, neighborIndex);
+            }
+
             if (path == null || path.Length == 0)
                 return [];
 
@@ -104,35 +129,31 @@ namespace Game
                 return;
 
             int tileIndex = tile.Get<TileIndex>();
+            bool tileIsOccupied = _entities.IsTileOccupied(coord);
 
-            // Disconnect existing connections
+            // Update connections to each neighbor
             foreach (var dir in HexGrid.Directions.Values)
             {
                 var neighborCoord = coord + dir;
-                if (_tiles.TryGetValue(neighborCoord, out var neighborTile))
+                if (!_tiles.TryGetValue(neighborCoord, out var neighborTile))
+                    continue;
+
+                int neighborIndex = neighborTile.Get<TileIndex>();
+                if (!_astar.HasPoint(neighborIndex))
+                    continue;
+
+                bool neighborIsOccupied = _entities.IsTileOccupied(neighborCoord);
+                bool shouldBeConnected = !tileIsOccupied && !neighborIsOccupied;
+
+                bool isConnected = _astar.ArePointsConnected(tileIndex, neighborIndex);
+
+                if (shouldBeConnected && !isConnected)
                 {
-                    int neighborIndex = neighborTile.Get<TileIndex>();
-                    if (_astar.ArePointsConnected(tileIndex, neighborIndex))
-                    {
-                        _astar.DisconnectPoints(tileIndex, neighborIndex);
-                    }
+                    _astar.ConnectPoints(tileIndex, neighborIndex);
                 }
-            }
-
-            // Reconnect valid paths
-            foreach (var dir in HexGrid.Directions.Values)
-            {
-                var neighborCoord = coord + dir;
-                if (_tiles.TryGetValue(neighborCoord, out var neighborTile))
+                else if (!shouldBeConnected && isConnected)
                 {
-                    if (_entities.IsTileOccupied(neighborCoord))
-                        continue;
-
-                    int neighborIndex = neighborTile.Get<TileIndex>();
-                    if (_astar.HasPoint(neighborIndex) && !_astar.ArePointsConnected(tileIndex, neighborIndex))
-                    {
-                        _astar.ConnectPoints(tileIndex, neighborIndex);
-                    }
+                    _astar.DisconnectPoints(tileIndex, neighborIndex);
                 }
             }
         }
