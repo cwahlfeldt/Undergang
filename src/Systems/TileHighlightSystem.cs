@@ -18,10 +18,8 @@ namespace Game
         private Entity _selectedTile;
         private DashSystem _dashSystem;
 
-        // Debouncing for hover pathfinding
+        // Track currently hovered tile
         private Entity _lastHoveredTile;
-        private ulong _lastHoverTime;
-        private const ulong HOVER_DEBOUNCE_MS = 50;
 
         // Mesh caching for material application
         private readonly Dictionary<int, List<MeshInstance3D>> _tileMeshCache = new();
@@ -62,52 +60,22 @@ namespace Game
 
         private void OnTileHover(Entity tile)
         {
-            ulong currentTime = Time.GetTicksMsec();
-
-            // Debounce: only recalculate if enough time has passed or it's a different tile
-            if (tile == _lastHoveredTile && (currentTime - _lastHoverTime) < HOVER_DEBOUNCE_MS)
+            // Skip if same tile or already highlighted
+            if (tile == _lastHoveredTile)
             {
                 return;
             }
 
+            // Clear previous hover highlight
+            ClearHighlightedTiles();
+
             _lastHoveredTile = tile;
-            _lastHoverTime = currentTime;
 
-            if (
-                tile != _selectedTile &&
-                !_highlightedTiles.Contains(tile))
+            // Only highlight traversable tiles
+            if (tile != null && tile.Has<Traversable>() && tile != _selectedTile)
             {
-                var player = Entities.Query<Player>().FirstOrDefault();
-
-                if (player != null && player.Has<CurrentTurn>())
-                {
-                    // Check if player is in dash mode
-                    if (player.Has<DashModeActive>())
-                    {
-                        // Don't show path preview for dash mode - handled by OnTurnChanged
-                        return;
-                    }
-
-                    var path = PathFinder.FindPath(player.Get<Coordinate>(), tile.Get<Coordinate>(), player.Get<MoveRange>());
-
-                    if (path.Count > 0)
-                    {
-                        // Clear previous highlights first
-                        ClearHighlightedTiles();
-
-                        // Highlight new tiles and add them to tracking
-                        foreach (Vector3I t in path)
-                        {
-                            var tileTile = Entities.GetAt(t);
-
-                            if (tileTile.Get<Coordinate>() != player.Get<Coordinate>())
-                            {
-                                SetTileMaterial(tileTile, _highlightMaterial);
-                                _highlightedTiles.Add(tileTile); // Add to tracking
-                            }
-                        }
-                    }
-                }
+                SetTileMaterial(tile, _highlightMaterial);
+                _highlightedTiles.Add(tile);
             }
         }
 
