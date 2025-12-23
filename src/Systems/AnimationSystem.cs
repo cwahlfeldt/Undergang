@@ -13,37 +13,86 @@ namespace Game
     public class AnimationSystem : System
     {
         /// <summary>
-        /// Maps unit types to their custom animation naming schemes
-        /// If a unit type is not in this map, it uses the standard pattern: "{UnitType}_{AnimationState}"
+        /// Default animation mappings for units using the Character/Movement animation libraries.
+        /// All skeleton-based units share the same animation library structure.
         /// </summary>
+        private static readonly Dictionary<AnimationState, string> _defaultSkeletonAnimations = new()
+        {
+            { AnimationState.Spawn, "Character/Spawn_Air" },
+            { AnimationState.Idle, "Character/Idle_B" },
+            { AnimationState.Move, "Movement/Running_A" },
+            { AnimationState.Attack, "Character/Interact" },
+            { AnimationState.Hurt, "Character/Hit_A" },
+            { AnimationState.Die, "Character/Death_A" },
+        };
+
         private readonly Dictionary<UnitType, Dictionary<AnimationState, string>> _animationMappings = new()
         {
-            // Player uses library-based animations with custom names
-            {
-                UnitType.Player, new Dictionary<AnimationState, string>
-                {
-                    { AnimationState.Spawn, "Character/Spawn_Air" },
-                    { AnimationState.Idle, "Character/Idle_B" },
-                    { AnimationState.Move, "Movement/Running_A" },  // Running animation from Movement library
-                    { AnimationState.Attack, "Character/Interact" },  // Fallback until Slash is added
-                    { AnimationState.Hurt, "Character/Hit_A" },
-                    { AnimationState.Die, "Character/Death_A" },
-                }
-            }
-            // Add more unit types here as needed, e.g.:
-            // { UnitType.Grunt, new Dictionary<AnimationState, string> { ... } }
+            { UnitType.Player, _defaultSkeletonAnimations },
+            { UnitType.Grunt, _defaultSkeletonAnimations },
+            { UnitType.Wizard, _defaultSkeletonAnimations },
+            { UnitType.SniperAxisQ, _defaultSkeletonAnimations },
+            { UnitType.SniperAxisR, _defaultSkeletonAnimations },
+            { UnitType.SniperAxisS, _defaultSkeletonAnimations },
         };
+        /// <summary>
+        /// Delay in milliseconds between each enemy spawn animation.
+        /// </summary>
+        private const int SpawnStaggerDelayMs = 150;
+
         public override void Initialize()
         {
             // Subscribe to events that should trigger animations
             Events.MoveCompleted += OnMoveCompleted;
             Events.UnitDefeated += OnUnitDefeated;
 
-            // Play spawn animation for all units (fire and forget - will auto-transition to Idle)
-            foreach (var unit in Entities.Query<Unit, Instance>())
+            // Play spawn animations with staggered timing
+            _ = PlayStaggeredSpawnAnimations();
+        }
+
+        /// <summary>
+        /// Plays spawn animations for all units with staggered timing based on turn order.
+        /// Player spawns first and completes before enemies start spawning.
+        /// Enemies are hidden initially and made visible when their spawn animation plays.
+        /// </summary>
+        private async Task PlayStaggeredSpawnAnimations()
+        {
+            var units = Entities.Query<Unit, Instance>().ToList();
+
+            // Spawn player first and wait for completion
+            var player = units.FirstOrDefault(u => u.Has<Player>());
+            if (player != null)
             {
-                _ = PlaySpawnAnimationAsync(unit);
+                await PlaySpawnAnimationAsync(player);
             }
+
+            // Then spawn enemies in turn order with stagger
+            var enemies = units
+                .Where(u => u.Has<Enemy>())
+                .OrderBy(u => u.Has<TurnOrder>() ? u.Get<TurnOrder>().Value : int.MaxValue)
+                .ToList();
+
+            foreach (var enemy in enemies)
+            {
+                // Start spawn animation while still hidden, then reveal
+                var node = enemy.Get<Instance>().Node;
+
+                // Set animation state first (starts the animation while hidden)
+                SetAnimationState(enemy, AnimationState.Spawn);
+
+                // Small delay to ensure animation has started before showing
+                await Task.Delay(16); // ~1 frame at 60fps
+
+                // Now make visible - animation is already playing
+                node.Visible = true;
+
+                // Continue with spawn animation completion in background
+                _ = ContinueSpawnAnimationAsync(enemy);
+                await Task.Delay(SpawnStaggerDelayMs);
+            }
+
+            // Notify that all spawns are complete - game can now start
+            Events.OnSpawnsComplete();
         }
 
         /// <summary>
@@ -119,8 +168,7 @@ namespace Game
         {
             // Get the AnimationPlayer node from the unit's scene
             var unitNode = unit.Get<Instance>().Node;
-            var animationPlayer = unitNode.GetNodeOrNull<Godot.AnimationPlayer>("AnimationPlayer")
-                ?? unitNode.GetNodeOrNull<Godot.AnimationPlayer>("Knight/AnimationPlayer");
+            var animationPlayer = FindAnimationPlayer(unitNode);
 
             if (animationPlayer == null)
             {
@@ -185,8 +233,35 @@ namespace Game
         }
 
         /// <summary>
-        /// Plays spawn animation for a unit, then transitions to Idle after animation completes
-        /// Uses Godot's animation_finished signal to avoid blocking
+        /// Recursively searches for an AnimationPlayer node in the scene tree.
+        /// This handles different character model structures where AnimationPlayer
+        /// may be nested under various parent nodes (e.g., Knight/, Skeleton_Warrior/, etc.)
+        /// </summary>
+        private Godot.AnimationPlayer FindAnimationPlayer(Node root)
+        {
+            // First check if root itself is an AnimationPlayer
+            if (root is Godot.AnimationPlayer ap)
+                return ap;
+
+            // Check direct children first for performance
+            var directChild = root.GetNodeOrNull<Godot.AnimationPlayer>("AnimationPlayer");
+            if (directChild != null)
+                return directChild;
+
+            // Recursively search all children
+            foreach (var child in root.GetChildren())
+            {
+                var found = FindAnimationPlayer(child);
+                if (found != null)
+                    return found;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Plays spawn animation for a unit, then transitions to Idle after animation completes.
+        /// Uses Godot's animation_finished signal to avoid blocking.
         /// </summary>
         private async Task PlaySpawnAnimationAsync(Entity unit)
         {
@@ -196,6 +271,27 @@ namespace Game
             // Set to Spawn state and play animation
             SetAnimationState(unit, AnimationState.Spawn);
 
+            // Wait for animation to complete and transition to Idle
+            await WaitForSpawnAndTransitionToIdle(unit);
+        }
+
+        /// <summary>
+        /// Continues a spawn animation that was already started (for enemies that need to be made visible first).
+        /// Waits for animation completion and transitions to Idle.
+        /// </summary>
+        private async Task ContinueSpawnAnimationAsync(Entity unit)
+        {
+            if (!unit.Has<Unit>())
+                return;
+
+            await WaitForSpawnAndTransitionToIdle(unit);
+        }
+
+        /// <summary>
+        /// Waits for spawn animation to complete and transitions to Idle state.
+        /// </summary>
+        private async Task WaitForSpawnAndTransitionToIdle(Entity unit)
+        {
             // Get animation player
             var animationPlayer = unit.Has<Components.AnimationPlayer>()
                 ? unit.Get<Components.AnimationPlayer>().Player
@@ -218,18 +314,6 @@ namespace Game
                     animationPlayer.AnimationFinished += OnAnimationFinished;
                     await tcs.Task;
                 }
-                else
-                {
-                    // No spawn animation exists, immediately transition to Idle
-                    SetAnimationState(unit, AnimationState.Idle);
-                    return;
-                }
-            }
-            else
-            {
-                // No animation player, immediately transition to Idle
-                SetAnimationState(unit, AnimationState.Idle);
-                return;
             }
 
             // Transition to Idle state after animation completes

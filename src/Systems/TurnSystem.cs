@@ -135,8 +135,16 @@ namespace Game
             if (units.Any())
             {
                 _currentTurnIndex = -1; // Will become 0 after first advancement
-                AdvanceToNextUnit();
+
+                // Wait for spawn animations to complete before starting the game
+                Events.SpawnsComplete += OnSpawnsComplete;
             }
+        }
+
+        private void OnSpawnsComplete()
+        {
+            Events.SpawnsComplete -= OnSpawnsComplete;
+            AdvanceToNextUnit();
         }
 
         private void StartUnitTurn(Entity unit)

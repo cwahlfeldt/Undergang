@@ -60,6 +60,12 @@ namespace Game
 					unitInstance.Node.Position = HexGrid.HexToWorld(entity.Get<Coordinate>());
 					unitInstance.Node.Name = entity.Get<Name>();
 
+					// Hide enemies initially - they will be shown when their spawn animation plays
+					if (entity.Has<Enemy>())
+					{
+						unitInstance.Node.Visible = false;
+					}
+
 					SetupUnitInput(entity);
 				}
 			}
