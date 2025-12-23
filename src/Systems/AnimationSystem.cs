@@ -38,7 +38,7 @@ namespace Game
         /// <summary>
         /// Delay in milliseconds between each enemy spawn animation.
         /// </summary>
-        private const int SpawnStaggerDelayMs = 150;
+        private const int SpawnStaggerDelayMs = 300;
 
         public override void Initialize()
         {
@@ -59,11 +59,16 @@ namespace Game
         {
             var units = Entities.Query<Unit, Instance>().ToList();
 
-            // Spawn player first and wait for completion
+            // Spawn player first
             var player = units.FirstOrDefault(u => u.Has<Player>());
             if (player != null)
             {
-                await PlaySpawnAnimationAsync(player);
+                // Start player spawn but don't wait for full completion
+                SetAnimationState(player, AnimationState.Spawn);
+                _ = WaitForSpawnAndTransitionToIdle(player);
+
+                // Brief delay so player is visible first, then start enemies
+                await Task.Delay(600);
             }
 
             // Then spawn enemies in turn order with stagger
@@ -81,7 +86,7 @@ namespace Game
                 SetAnimationState(enemy, AnimationState.Spawn);
 
                 // Small delay to ensure animation has started before showing
-                await Task.Delay(16); // ~1 frame at 60fps
+                await Task.Delay(4); // ~1 frame at 60fps
 
                 // Now make visible - animation is already playing
                 node.Visible = true;
@@ -260,23 +265,7 @@ namespace Game
         }
 
         /// <summary>
-        /// Plays spawn animation for a unit, then transitions to Idle after animation completes.
-        /// Uses Godot's animation_finished signal to avoid blocking.
-        /// </summary>
-        private async Task PlaySpawnAnimationAsync(Entity unit)
-        {
-            if (!unit.Has<Unit>())
-                return;
-
-            // Set to Spawn state and play animation
-            SetAnimationState(unit, AnimationState.Spawn);
-
-            // Wait for animation to complete and transition to Idle
-            await WaitForSpawnAndTransitionToIdle(unit);
-        }
-
-        /// <summary>
-        /// Continues a spawn animation that was already started (for enemies that need to be made visible first).
+        /// Continues a spawn animation that was already started.
         /// Waits for animation completion and transitions to Idle.
         /// </summary>
         private async Task ContinueSpawnAnimationAsync(Entity unit)
