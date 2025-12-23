@@ -7,36 +7,45 @@ using System.Linq;
 
 namespace Game
 {
+    /// <summary>
+    /// Highlight layers in priority order (higher = displayed on top)
+    /// </summary>
+    public enum HighlightLayer
+    {
+        None = 0,
+        DashRange = 1,
+        AttackRange = 2,
+        Hover = 3,
+        Selected = 4
+    }
+
     public class TileHighlightSystem : System
     {
-        private readonly HashSet<Entity> _highlightedTiles = [];
-        private StandardMaterial3D _highlightMaterial;
-        private StandardMaterial3D _selectedMaterial;
-        private StandardMaterial3D _defaultMaterial;
-        private StandardMaterial3D _attackRangeMaterial;
-        private StandardMaterial3D _dashRangeMaterial;
+        // Track which layers are active on each tile
+        private readonly Dictionary<int, HashSet<HighlightLayer>> _tileHighlights = new();
+
+        // Materials for each layer
+        private readonly Dictionary<HighlightLayer, StandardMaterial3D> _layerMaterials = new();
+
+        private Entity _lastHoveredTile;
         private Entity _selectedTile;
         private DashSystem _dashSystem;
-
-        // Track currently hovered tile
-        private Entity _lastHoveredTile;
 
         // Mesh caching for material application
         private readonly Dictionary<int, List<MeshInstance3D>> _tileMeshCache = new();
 
         public override void Initialize()
         {
-            _highlightMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileHighlight.tres");
-            _selectedMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileSelect.tres");
-            _defaultMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileBase.tres");
-            _attackRangeMaterial = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileAttackRange.tres");
+            // Load/create materials for each layer
+            _layerMaterials[HighlightLayer.Hover] = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileHighlight.tres");
+            _layerMaterials[HighlightLayer.Selected] = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileSelect.tres");
+            _layerMaterials[HighlightLayer.AttackRange] = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileAttackRange.tres");
 
-            // Create dash range material (blue)
-            _dashRangeMaterial = new StandardMaterial3D
+            // Dash range - subtle blue-gray similar to hover
+            _layerMaterials[HighlightLayer.DashRange] = new StandardMaterial3D
             {
-                AlbedoColor = new Color(0.2f, 0.5f, 1.0f, 0.6f),
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                CullMode = BaseMaterial3D.CullModeEnum.Disabled
+                AlbedoColor = new Color(0.5f, 0.6f, 0.8f, 0.8f),
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha
             };
 
             _dashSystem = Systems.Get<DashSystem>();
@@ -45,7 +54,6 @@ namespace Game
             Events.TileUnhover += OnTileUnhover;
             Events.UnitHover += OnUnitHover;
             Events.UnitUnhover += OnUnitUnhover;
-            Events.TurnChanged += OnTurnChanged;
         }
 
         /// <summary>
@@ -54,56 +62,52 @@ namespace Game
         public void ClearMeshCache()
         {
             _tileMeshCache.Clear();
-            _highlightedTiles.Clear();
+            _tileHighlights.Clear();
             _selectedTile = null;
+            _lastHoveredTile = null;
         }
+
+        #region Event Handlers
 
         private void OnTileHover(Entity tile)
         {
-            // Skip if same tile or already highlighted
-            if (tile == _lastHoveredTile)
-            {
-                return;
-            }
+            if (tile == _lastHoveredTile) return;
 
-            // Clear previous hover highlight
-            ClearHighlightedTiles();
+            // Remove hover from previous tile
+            if (_lastHoveredTile != null)
+            {
+                RemoveHighlight(_lastHoveredTile, HighlightLayer.Hover);
+            }
 
             _lastHoveredTile = tile;
 
-            // Only highlight traversable tiles
-            if (tile != null && tile.Has<Traversable>() && tile != _selectedTile)
+            // Add hover to new tile if traversable
+            if (tile != null && tile.Has<Traversable>())
             {
-                SetTileMaterial(tile, _highlightMaterial);
-                _highlightedTiles.Add(tile);
+                AddHighlight(tile, HighlightLayer.Hover);
             }
         }
 
         private void OnTileUnhover(Entity tile)
         {
-            // Don't clear on unhover - the next hover will handle clearing
-            // This keeps the highlight visible as cursor moves between tiles
+            // Keep hover visible until next tile is hovered
         }
 
         private void OnUnitHover(Entity unit)
         {
-            if (unit != null && unit.Has<Unit>())
+            if (unit == null || !unit.Has<Unit>()) return;
+
+            // Clear any previous attack range highlights
+            ClearLayer(HighlightLayer.AttackRange);
+
+            // Highlight all tiles in attack range
+            var unitCoord = unit.Get<Coordinate>();
+            foreach (var coord in RangeSystem.GetAttackRangeTiles(unit, unitCoord))
             {
-                // Clear any previous highlights
-                ClearHighlightedTiles();
-
-                // Get the unit's attack range tiles
-                var unitCoord = unit.Get<Coordinate>();
-
-                // Highlight all tiles in attack range
-                foreach (var coord in RangeSystem.GetAttackRangeTiles(unit, unitCoord))
+                var tile = Entities.GetAt(coord);
+                if (tile != null && tile.Has<Traversable>())
                 {
-                    var tile = Entities.GetAt(coord);
-                    if (tile != null && tile.Has<Traversable>())
-                    {
-                        SetTileMaterial(tile, _attackRangeMaterial);
-                        _highlightedTiles.Add(tile);
-                    }
+                    AddHighlight(tile, HighlightLayer.AttackRange);
                 }
             }
         }
@@ -112,94 +116,151 @@ namespace Game
         {
             if (unit != null)
             {
-                ClearHighlightedTiles();
+                ClearLayer(HighlightLayer.AttackRange);
             }
         }
 
-        private void OnTurnChanged(Entity unit)
-        {
-            // Update dash range visualization when player enters dash mode
-            if (unit.Has<Player>() && unit.Has<DashModeActive>())
-            {
-                UpdateDashRangeVisualization(unit);
-            }
-            // Don't clear highlights on turn change - hover persists across all turns
-        }
+        #endregion
+
+        #region Public API
 
         /// <summary>
-        /// Public method to update dash visualization (called from UI)
+        /// Update dash range visualization - call when entering/exiting dash mode
         /// </summary>
         public void RefreshDashVisualization()
         {
+            // Always clear existing dash highlights first
+            ClearLayer(HighlightLayer.DashRange);
+
             var player = Entities.Query<Player>().FirstOrDefault();
             if (player != null && player.Has<DashModeActive>())
             {
-                UpdateDashRangeVisualization(player);
-            }
-            else
-            {
-                // Exiting dash mode - clear dash highlights but restore hover if applicable
-                ClearHighlightedTiles();
-                if (_lastHoveredTile != null && _lastHoveredTile.Has<Traversable>())
+                // Show dash range tiles
+                var dashTiles = _dashSystem.GetDashRangeTiles(player.Get<Coordinate>());
+                foreach (var coord in dashTiles)
                 {
-                    SetTileMaterial(_lastHoveredTile, _highlightMaterial);
-                    _highlightedTiles.Add(_lastHoveredTile);
+                    var tile = Entities.GetAt(coord);
+                    if (tile != null)
+                    {
+                        AddHighlight(tile, HighlightLayer.DashRange);
+                    }
                 }
             }
         }
 
-        private void UpdateDashRangeVisualization(Entity player)
-        {
-            // Clear previous highlights
-            ClearHighlightedTiles();
-
-            // Get dash range tiles
-            var dashTiles = _dashSystem.GetDashRangeTiles(player.Get<Coordinate>());
-
-            // Highlight all dash range tiles in blue
-            foreach (var coord in dashTiles)
-            {
-                var tile = Entities.GetAt(coord);
-                if (tile != null)
-                {
-                    SetTileMaterial(tile, _dashRangeMaterial);
-                    _highlightedTiles.Add(tile);
-                }
-            }
-        }
-
-        private void ClearHighlightedTiles()
-        {
-            foreach (Entity t in _highlightedTiles)
-            {
-                ClearTileMaterial(t);
-            }
-            _highlightedTiles.Clear();
-        }
-
+        /// <summary>
+        /// Briefly highlight a tile as selected (for click feedback)
+        /// </summary>
         public async void SelectTile(Entity entity)
-        {
-            ClearSelection();
-            _selectedTile = entity;
-            SetTileMaterial(_selectedTile, _selectedMaterial);
-            await Task.Delay(Config.TileSelectDurationMs);
-            ClearSelection();
-        }
-
-        private void ClearSelection()
         {
             if (_selectedTile != null)
             {
-                ClearTileMaterial(_selectedTile);
-                _selectedTile = null;
+                RemoveHighlight(_selectedTile, HighlightLayer.Selected);
             }
 
-            foreach (var tile in _highlightedTiles)
+            _selectedTile = entity;
+            AddHighlight(_selectedTile, HighlightLayer.Selected);
+
+            await Task.Delay(Config.TileSelectDurationMs);
+
+            if (_selectedTile == entity)
             {
-                ClearTileMaterial(tile);
+                RemoveHighlight(_selectedTile, HighlightLayer.Selected);
+                _selectedTile = null;
             }
-            _highlightedTiles.Clear();
         }
+
+        #endregion
+
+        #region Core Highlight Logic
+
+        /// <summary>
+        /// Add a highlight layer to a tile
+        /// </summary>
+        private void AddHighlight(Entity tile, HighlightLayer layer)
+        {
+            if (tile == null) return;
+
+            if (!_tileHighlights.TryGetValue(tile.Id, out var layers))
+            {
+                layers = new HashSet<HighlightLayer>();
+                _tileHighlights[tile.Id] = layers;
+            }
+
+            layers.Add(layer);
+            UpdateTileMaterial(tile);
+        }
+
+        /// <summary>
+        /// Remove a highlight layer from a tile
+        /// </summary>
+        private void RemoveHighlight(Entity tile, HighlightLayer layer)
+        {
+            if (tile == null) return;
+
+            if (_tileHighlights.TryGetValue(tile.Id, out var layers))
+            {
+                layers.Remove(layer);
+                UpdateTileMaterial(tile);
+
+                // Clean up empty entries
+                if (layers.Count == 0)
+                {
+                    _tileHighlights.Remove(tile.Id);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Clear all tiles with a specific highlight layer
+        /// </summary>
+        private void ClearLayer(HighlightLayer layer)
+        {
+            // Get all tiles with this layer
+            var tilesToUpdate = _tileHighlights
+                .Where(kvp => kvp.Value.Contains(layer))
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            foreach (var tileId in tilesToUpdate)
+            {
+                try
+                {
+                    var tile = Entities.GetEntity(tileId);
+                    RemoveHighlight(tile, layer);
+                }
+                catch
+                {
+                    // Entity no longer exists, clean up
+                    _tileHighlights.Remove(tileId);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Update the visual material based on highest priority active layer
+        /// </summary>
+        private void UpdateTileMaterial(Entity tile)
+        {
+            if (!_tileHighlights.TryGetValue(tile.Id, out var layers) || layers.Count == 0)
+            {
+                // No highlights - clear material
+                ClearTileMaterial(tile);
+                return;
+            }
+
+            // Get highest priority layer
+            var highestLayer = layers.Max();
+
+            if (_layerMaterials.TryGetValue(highestLayer, out var material))
+            {
+                SetTileMaterial(tile, material);
+            }
+        }
+
+        #endregion
+
+        #region Material Application
 
         private void SetTileMaterial(Entity tile, StandardMaterial3D material)
         {
@@ -249,14 +310,29 @@ namespace Game
             }
         }
 
+        #endregion
+
         public override void Cleanup()
         {
             Events.TileHover -= OnTileHover;
             Events.TileUnhover -= OnTileUnhover;
             Events.UnitHover -= OnUnitHover;
             Events.UnitUnhover -= OnUnitUnhover;
-            Events.TurnChanged -= OnTurnChanged;
-            ClearSelection();
+
+            // Clear all highlights
+            foreach (var tileId in _tileHighlights.Keys.ToList())
+            {
+                try
+                {
+                    var tile = Entities.GetEntity(tileId);
+                    ClearTileMaterial(tile);
+                }
+                catch
+                {
+                    // Entity no longer exists, skip
+                }
+            }
+            _tileHighlights.Clear();
         }
     }
 }

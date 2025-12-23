@@ -191,7 +191,17 @@ namespace Game
             // Instead, manually set up the player's turn state
             player.Add(new CurrentTurn());
             player.Add(new WaitingForAction());
-            Events.OnTurnChanged(player);
+
+            // Store the restored position as the "before action" position
+            // so that rewind from this point works correctly
+            if (player.Has<Coordinate>())
+            {
+                _positionsBeforeAction[player.Id] = player.Get<Coordinate>().Value;
+            }
+
+            // Use a special event that indicates this is a rewind restart
+            // This prevents ability systems from ticking their cooldowns
+            Events.OnTurnRestarted(player);
         }
     }
 }

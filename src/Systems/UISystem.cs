@@ -146,6 +146,7 @@ namespace Game
             // Subscribe to component changes
             Events.ComponentChanged += OnComponentChanged;
             Events.TurnChanged += OnTurnChanged;
+            Events.TurnRestarted += OnTurnChanged;  // Handle rewind restart same as turn change for UI
             Events.UnitDefeated += OnUnitDefeated;
         }
 
@@ -582,6 +583,7 @@ namespace Game
         {
             Events.ComponentChanged -= OnComponentChanged;
             Events.TurnChanged -= OnTurnChanged;
+            Events.TurnRestarted -= OnTurnChanged;
             Events.UnitDefeated -= OnUnitDefeated;
 
             if (_dashButton != null)

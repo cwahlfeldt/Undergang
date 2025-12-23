@@ -26,6 +26,14 @@ namespace Game
         /// </summary>
         public async Task<bool> ExecuteMove(Entity mover, Vector3I destination)
         {
+            // Check if mover still has a valid Instance (could be disposed during rewind)
+            if (!mover.Has<Instance>())
+                return false;
+
+            var moverNode = mover.Get<Instance>().Node;
+            if (moverNode == null || !GodotObject.IsInstanceValid(moverNode))
+                return false;
+
             var origin = mover.Get<Coordinate>();
             var path = PathFinder.FindPath(origin, destination, mover.Get<MoveRange>());
 
@@ -60,6 +68,14 @@ namespace Game
         /// </summary>
         public async Task<bool> ExecuteDash(Entity mover, Vector3I destination)
         {
+            // Check if mover still has a valid Instance (could be disposed during rewind)
+            if (!mover.Has<Instance>())
+                return false;
+
+            var moverNode = mover.Get<Instance>().Node;
+            if (moverNode == null || !GodotObject.IsInstanceValid(moverNode))
+                return false;
+
             var origin = mover.Get<Coordinate>();
 
             // Validate dash destination

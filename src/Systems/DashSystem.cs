@@ -7,8 +7,11 @@ namespace Game
 {
     public class DashSystem : System
     {
+        private TileHighlightSystem _tileHighlightSystem;
+
         public override void Initialize()
         {
+            _tileHighlightSystem = Systems.Get<TileHighlightSystem>();
             Events.TurnChanged += OnTurnChanged;
 
             // Initialize player with dash ability (cooldown = 0, ready to use)
@@ -104,6 +107,8 @@ namespace Game
             player.Remove<DashModeActive>();
             ClearDashRangeTiles();
 
+            // Clear visual highlights
+            _tileHighlightSystem.RefreshDashVisualization();
         }
 
         /// <summary>

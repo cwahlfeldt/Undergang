@@ -40,6 +40,7 @@ namespace Game
             Events.Instance.UnitRightClick += OnUnitRightClick;
             Events.Instance.EntityRightClick += OnUnitRightClick;
             Events.Instance.TurnChanged += OnTurnChanged;
+            Events.Instance.TurnRestarted += OnTurnChanged;
             _debugText.BbcodeEnabled = true;
             UpdateDebug();
         }
@@ -148,6 +149,7 @@ namespace Game
         {
             Events.Instance.UnitRightClick -= OnUnitRightClick;
             Events.Instance.TurnChanged -= OnTurnChanged;
+            Events.Instance.TurnRestarted -= OnTurnChanged;
             _debugText?.QueueFree();
         }
     }

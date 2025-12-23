@@ -10,6 +10,7 @@ namespace Game
 		public override void _Ready()
 		{
 			Events.Instance.TurnChanged += OnTurnChanged;
+			Events.Instance.TurnRestarted += OnTurnChanged;  // Handle rewind restart same as turn change
 			Events.Instance.GameOver += OnGameOver;
 
 			_systems = new Systems(this);
