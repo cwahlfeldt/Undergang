@@ -7,34 +7,18 @@ using Godot;
 namespace Game
 {
     /// <summary>
-    /// System responsible for managing unit animations based on their state
-    /// Supports both standard naming convention and custom animation mappings
+    /// System responsible for managing unit animations based on their state.
+    /// Animation mappings are configured in AnimationConfig.cs.
+    /// Supports runtime overrides via RegisterCustomAnimation methods.
     /// </summary>
     public class AnimationSystem : System
     {
         /// <summary>
-        /// Default animation mappings for units using the Character/Movement animation libraries.
-        /// All skeleton-based units share the same animation library structure.
+        /// Runtime overrides for animation mappings. Takes precedence over AnimationConfig.
+        /// Use RegisterCustomAnimation to add runtime overrides.
         /// </summary>
-        private static readonly Dictionary<AnimationState, string> _defaultSkeletonAnimations = new()
-        {
-            { AnimationState.Spawn, "Character/Spawn_Air" },
-            { AnimationState.Idle, "Character/Idle_B" },
-            { AnimationState.Move, "Movement/Running_A" },
-            { AnimationState.Attack, "Character/Interact" },
-            { AnimationState.Hurt, "Character/Hit_A" },
-            { AnimationState.Die, "Character/Death_A" },
-        };
+        private readonly Dictionary<UnitType, Dictionary<AnimationState, string>> _runtimeOverrides = new();
 
-        private readonly Dictionary<UnitType, Dictionary<AnimationState, string>> _animationMappings = new()
-        {
-            { UnitType.Player, _defaultSkeletonAnimations },
-            { UnitType.Grunt, _defaultSkeletonAnimations },
-            { UnitType.Wizard, _defaultSkeletonAnimations },
-            { UnitType.SniperAxisQ, _defaultSkeletonAnimations },
-            { UnitType.SniperAxisR, _defaultSkeletonAnimations },
-            { UnitType.SniperAxisS, _defaultSkeletonAnimations },
-        };
         /// <summary>
         /// Delay in milliseconds between each enemy spawn animation.
         /// </summary>
@@ -109,10 +93,10 @@ namespace Game
         /// </example>
         public void RegisterCustomAnimation(UnitType unitType, AnimationState state, string animationName)
         {
-            if (!_animationMappings.TryGetValue(unitType, out var mapping))
+            if (!_runtimeOverrides.TryGetValue(unitType, out var mapping))
             {
                 mapping = [];
-                _animationMappings[unitType] = mapping;
+                _runtimeOverrides[unitType] = mapping;
             }
             mapping[state] = animationName;
         }
@@ -129,7 +113,7 @@ namespace Game
         /// </example>
         public void RegisterCustomAnimations(UnitType unitType, Dictionary<AnimationState, string> animations)
         {
-            _animationMappings[unitType] = animations;
+            _runtimeOverrides[unitType] = animations;
         }
 
         public override async Task Update()
@@ -213,22 +197,27 @@ namespace Game
         /// </summary>
         private string GetAnimationName(UnitType unitType, AnimationState state, Godot.AnimationPlayer animationPlayer)
         {
-            // Strategy 1: Check custom mappings
-            if (_animationMappings.TryGetValue(unitType, out var customMapping))
+            // Strategy 1: Check runtime overrides (highest priority)
+            if (_runtimeOverrides.TryGetValue(unitType, out var runtimeMapping))
             {
-                if (customMapping.TryGetValue(state, out var customName))
+                if (runtimeMapping.TryGetValue(state, out var runtimeName))
                 {
-                    if (animationPlayer.HasAnimation(customName))
-                        return customName;
+                    if (animationPlayer.HasAnimation(runtimeName))
+                        return runtimeName;
                 }
             }
 
-            // Strategy 2: Standard pattern "{UnitType}_{AnimationState}"
+            // Strategy 2: Check AnimationConfig mappings
+            var configName = AnimationConfig.GetAnimation(unitType, state);
+            if (configName != null && animationPlayer.HasAnimation(configName))
+                return configName;
+
+            // Strategy 3: Standard pattern "{UnitType}_{AnimationState}"
             var standardName = $"{unitType}_{state}";
             if (animationPlayer.HasAnimation(standardName))
                 return standardName;
 
-            // Strategy 3: Generic state name fallback
+            // Strategy 4: Generic state name fallback
             var genericName = state.ToString();
             if (animationPlayer.HasAnimation(genericName))
                 return genericName;
