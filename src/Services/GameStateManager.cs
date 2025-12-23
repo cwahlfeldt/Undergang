@@ -161,7 +161,6 @@ namespace Game
                 _history.RemoveAt(0);
             }
 
-            GD.Print($"[GameStateManager] Captured snapshot: Turn {currentTurnIndex}, {unitCount} units, {tileCount} tiles, History depth: {_history.Count}");
         }
 
         /// <summary>
@@ -216,8 +215,6 @@ namespace Game
 
             var snapshot = _history[snapshotIndex];
 
-            GD.Print($"[GameStateManager] === REWINDING to Turn {snapshot.TurnNumber} ===");
-
             // 1. Identify units that need to be respawned (were in snapshot but dead now)
             var respawnedUnitIds = new List<int>();
             var currentUnitIds = Entities.Query<Unit>().Select(e => e.Id).ToHashSet();
@@ -230,8 +227,6 @@ namespace Game
             {
                 respawnedUnitIds.Add(id);
             }
-
-            GD.Print($"[GameStateManager] Respawning {respawnedUnitIds.Count} units");
 
             // 2. Animate existing units back to their snapshot positions
             await AnimateUnitsToSnapshotPositions(snapshot);
@@ -271,8 +266,6 @@ namespace Game
 
             // 12. Restart player turn
             _turnSystem?.RestartPlayerTurn(snapshot.CurrentTurnIndex);
-
-            GD.Print($"[GameStateManager] === REWIND COMPLETE ===");
 
             return new RewindResult
             {
@@ -356,8 +349,6 @@ namespace Game
                 var instance = currentEntity.Get<Instance>().Node;
                 if (instance == null) continue;
 
-                GD.Print($"[GameStateManager] Animating unit {entitySnap.EntityId} from {currentPos} to {targetPos}");
-
                 var targetWorldPos = HexGrid.HexToWorld(new Coordinate(targetPos));
                 var tween = instance.CreateTween();
                 tween.TweenProperty(instance, "position", targetWorldPos, Config.RewindAnimationSpeed);
@@ -428,8 +419,6 @@ namespace Game
                     Entities.AddEntity(entity);
                 }
             }
-
-            GD.Print($"[GameStateManager] Restored {snapshot.Entities.Count} entities");
         }
 
         private void RestoreTileComponents(Entity tile, EntityStateSnapshot snapshot)
@@ -470,8 +459,6 @@ namespace Game
             var rootNode = Entities.GetRootNode();
             var unitContainer = rootNode.GetNodeOrNull<Node3D>("Units");
 
-            GD.Print($"[GameStateManager] Rebuilding visual state for {units.Count} units");
-
             foreach (var entity in units)
             {
                 var coord = entity.Get<Coordinate>();
@@ -509,8 +496,6 @@ namespace Game
                 {
                     entity.Add(new Components.AnimationPlayer(animPlayer));
                 }
-
-                GD.Print($"[GameStateManager] Rebuilt {name} at {coord.Value}");
             }
         }
 
@@ -536,8 +521,6 @@ namespace Game
 
                 var instance = entity.Get<Instance>().Node;
                 if (instance == null) continue;
-
-                GD.Print($"[GameStateManager] Applying fade-in effect to respawned unit {unitId}");
 
                 // Set initial transparency
                 SetNodeTransparency(instance, 0f);

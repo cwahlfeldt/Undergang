@@ -36,12 +36,9 @@ namespace Game
                 var attackRangeTiles = RangeSystem.GetAttackRangeTiles(unit, enemyCoord);
                 bool playerInRange = attackRangeTiles.Contains(playerCoord);
 
-                GD.Print($"[EnemySystem] {unit.Get<Name>()} at {enemyCoord} - player at {playerCoord}, playerInRange: {playerInRange}");
-
                 if (playerInRange)
                 {
                     // Pass turn - player already in range
-                    GD.Print($"[EnemySystem] {unit.Get<Name>()} passing turn (player in range)");
                     _turnSystem.ExecuteEnemyPass(unit);
                 }
                 else
@@ -62,12 +59,10 @@ namespace Game
                     // If target is same as current position, pass instead of moving
                     if (targetPosition == enemyCoord)
                     {
-                        GD.Print($"[EnemySystem] {unit.Get<Name>()} no valid move, passing turn");
                         _turnSystem.ExecuteEnemyPass(unit);
                     }
                     else
                     {
-                        GD.Print($"[EnemySystem] {unit.Get<Name>()} moving to {targetPosition}");
                         await _turnSystem.ExecuteEnemyAction(unit, targetPosition);
                     }
                 }
@@ -101,12 +96,9 @@ namespace Game
             // Get all actually reachable tiles (considers pathfinding, not just hex distance)
             var reachableTiles = PathFinder.GetReachableCoords(gruntCoord, moveRange);
 
-            GD.Print($"[EnemySystem] {grunt.Get<Name>()} reachable tiles: {reachableTiles.Count}");
-
             // Find the best tile: closest to player
             Vector3I bestTile = gruntCoord;
             int bestDistance = HexGrid.GetDistance(gruntCoord, playerCoord);
-            int currentDistance = bestDistance;
 
             foreach (var pos in reachableTiles)
             {
@@ -124,7 +116,6 @@ namespace Game
                 }
             }
 
-            GD.Print($"[EnemySystem] {grunt.Get<Name>()} best tile: {bestTile} (distance {bestDistance} to player, was {currentDistance})");
             return bestTile;
         }
 

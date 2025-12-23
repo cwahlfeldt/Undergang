@@ -13,16 +13,7 @@ namespace Game
     /// </summary>
     public class AnimationSystem : System
     {
-        /// <summary>
-        /// Runtime overrides for animation mappings. Takes precedence over AnimationConfig.
-        /// Use RegisterCustomAnimation to add runtime overrides.
-        /// </summary>
         private readonly Dictionary<UnitType, Dictionary<AnimationState, string>> _runtimeOverrides = new();
-
-        /// <summary>
-        /// Delay in milliseconds between each enemy spawn animation.
-        /// </summary>
-        private const int SpawnStaggerDelayMs = 300;
 
         public override void Initialize()
         {
@@ -52,7 +43,7 @@ namespace Game
                 _ = WaitForSpawnAndTransitionToIdle(player);
 
                 // Brief delay so player is visible first, then start enemies
-                await Task.Delay(600);
+                await Task.Delay(Config.PlayerSpawnDelayMs);
             }
 
             // Then spawn enemies in turn order with stagger
@@ -77,7 +68,7 @@ namespace Game
 
                 // Continue with spawn animation completion in background
                 _ = ContinueSpawnAnimationAsync(enemy);
-                await Task.Delay(SpawnStaggerDelayMs);
+                await Task.Delay(Config.SpawnStaggerDelayMs);
             }
 
             // Notify that all spawns are complete - game can now start
@@ -328,14 +319,12 @@ namespace Game
                 }
                 else
                 {
-                    // Fallback duration if no animation
-                    await Task.Delay(300);
+                    await Task.Delay(Config.FallbackAttackDurationMs);
                 }
             }
             else
             {
-                // Fallback duration if no animation player
-                await Task.Delay(300);
+                await Task.Delay(Config.FallbackAttackDurationMs);
             }
 
             // Return both units to Idle

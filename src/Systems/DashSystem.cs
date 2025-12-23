@@ -161,12 +161,7 @@ namespace Game
                 var currentCooldown = unit.Get<DashCooldown>();
                 if (currentCooldown > 0)
                 {
-                    var newCooldown = currentCooldown - 1;
-                    unit.Update(new DashCooldown(newCooldown));
-
-                    if (newCooldown == 0)
-                    {
-                    }
+                    unit.Update(new DashCooldown(currentCooldown - 1));
                 }
             }
 

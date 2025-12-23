@@ -29,13 +29,10 @@ namespace Game
             var origin = mover.Get<Coordinate>();
             var path = PathFinder.FindPath(origin, destination, mover.Get<MoveRange>());
 
-            GD.Print($"[MovementSystem] {mover.Get<Name>()} from {origin} to {destination}, path count: {path?.Count ?? 0}");
-
             // Handle case where no valid path exists (destination unreachable or occupied)
             if (path == null || path.Count == 0)
             {
                 // No movement possible - fire event with current position and return
-                GD.Print($"[MovementSystem] {mover.Get<Name>()} - no path found!");
                 Events.OnMoveCompleted(mover, origin, origin);
                 return false;
             }
@@ -226,23 +223,10 @@ namespace Game
             return false; // Unit survived
         }
 
-        /// <summary>
-        /// Get attack range tiles for an entity at a given position
-        /// </summary>
-        private IEnumerable<Vector3I> GetAttackRangeTiles(Entity entity, Vector3I position)
-        {
-            return RangeSystem.GetAttackRangeTiles(entity, position);
-        }
-
-        /// <summary>
-        /// Check if target coordinate is within attacker's attack range
-        /// </summary>
         private bool IsInAttackRange(Entity attacker, Vector3I attackerCoord, Vector3I targetCoord)
         {
             if (attacker == null) return false;
-
-            var tilesInRange = GetAttackRangeTiles(attacker, attackerCoord);
-            return tilesInRange.Contains(targetCoord);
+            return RangeSystem.GetAttackRangeTiles(attacker, attackerCoord).Contains(targetCoord);
         }
     }
 }

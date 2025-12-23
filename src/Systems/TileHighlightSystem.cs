@@ -174,44 +174,17 @@ namespace Game
             {
                 ClearTileMaterial(t);
             }
-            _highlightedTiles.Clear(); // Clear the tracking list
+            _highlightedTiles.Clear();
         }
-
-        // private void OnTileSelect(Entity tile)
-        // {
-        //     if (tile.Get<TileComponent>().Type != TileType.Blocked)
-        //     {
-        //         SelectTile(tile);
-        //     }
-        // }
 
         public async void SelectTile(Entity entity)
         {
             ClearSelection();
             _selectedTile = entity;
             SetTileMaterial(_selectedTile, _selectedMaterial);
-            await Task.Delay(TimeSpan.FromMilliseconds(500));
+            await Task.Delay(Config.TileSelectDurationMs);
             ClearSelection();
         }
-
-        // private void SelectMoveRangeTiles(Entity entity)
-        // {
-        //     ClearSelection();
-        //     var moveRangeMat = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileMoveRange.tres");
-
-        //     // Highlight neighboring tiles
-        //     // var rangedTiles = HexGrid.GetHexesInRange(entity.Get<HexCoordComponent>().Coord, entity.Get<MoveRangeComponent>().MoveRange);
-        //     var rangedTiles = Entities
-        //         .GetTilesInRange(entity.Get<TileComponent>().Coord, entity.Get<UnitComponent>().MoveRange);
-        //     foreach (var tile in rangedTiles)
-        //     {
-        //         if (tile != _selectedTile)
-        //         {
-        //             _highlightedTiles.Add(tile);
-        //             SetTileMaterial(tile, moveRangeMat);
-        //         }
-        //     }
-        // }
 
         private void ClearSelection()
         {
@@ -278,7 +251,6 @@ namespace Game
 
         public override void Cleanup()
         {
-            // EventBus.Instance.TileSelect -= OnTileSelect;
             Events.TileHover -= OnTileHover;
             Events.TileUnhover -= OnTileUnhover;
             Events.UnitHover -= OnUnitHover;

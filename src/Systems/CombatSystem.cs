@@ -65,7 +65,6 @@ namespace Game
 			{
 				// Block negates the attack completely
 				_blockSystem.ConsumeBlock(defender);
-				GD.Print($"Attack blocked! {defender.Get<Name>()} used block to negate {attacker.Get<Damage>()} damage.");
 
 				// Update UI to reflect block being consumed
 				Events.OnTurnChanged(defender);
