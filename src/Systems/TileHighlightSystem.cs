@@ -81,11 +81,8 @@ namespace Game
 
         private void OnTileUnhover(Entity tile)
         {
-            if (tile != null &&
-                tile != _selectedTile)
-            {
-                ClearHighlightedTiles();
-            }
+            // Don't clear on unhover - the next hover will handle clearing
+            // This keeps the highlight visible as cursor moves between tiles
         }
 
         private void OnUnitHover(Entity unit)
@@ -121,16 +118,12 @@ namespace Game
 
         private void OnTurnChanged(Entity unit)
         {
-            // Update dash range visualization when turn changes or dash mode toggles
+            // Update dash range visualization when player enters dash mode
             if (unit.Has<Player>() && unit.Has<DashModeActive>())
             {
                 UpdateDashRangeVisualization(unit);
             }
-            else
-            {
-                // Clear dash highlights if not in dash mode
-                ClearHighlightedTiles();
-            }
+            // Don't clear highlights on turn change - hover persists across all turns
         }
 
         /// <summary>
@@ -145,7 +138,13 @@ namespace Game
             }
             else
             {
+                // Exiting dash mode - clear dash highlights but restore hover if applicable
                 ClearHighlightedTiles();
+                if (_lastHoveredTile != null && _lastHoveredTile.Has<Traversable>())
+                {
+                    SetTileMaterial(_lastHoveredTile, _highlightMaterial);
+                    _highlightedTiles.Add(_lastHoveredTile);
+                }
             }
         }
 
