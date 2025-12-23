@@ -28,5 +28,22 @@ public record Config
 
     // Block ability settings
     public const int BlockCooldown = 3;
-    public const int BlockDuration = 1;  // Number of turns block stays active
+
+    // Rewind feature settings
+    public const int RewindCooldownTurns = 3;
+    public const int MaxHistoryDepth = 100;
+    public const float RewindAnimationSpeed = 0.3f;
+    public const float RespawnFadeInDuration = 0.5f;
+
+    // Animation settings
+    public const float AnimationBlendTime = 0.2f;
+    public const float RotationAnimationSpeed = 0.15f;
+    public const int SpawnStaggerDelayMs = 300;
+    public const int PlayerSpawnDelayMs = 600;
+    public const int FallbackAttackDurationMs = 300;
+    public const float AttackLungeDuration = 0.15f;
+    public const float AttackLungeDistance = 0.8f;
+
+    // UI settings
+    public const int TileSelectDurationMs = 500;
 }

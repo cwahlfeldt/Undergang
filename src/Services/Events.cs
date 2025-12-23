@@ -23,6 +23,7 @@ namespace Game
         public event Action<IEnumerable<Entity>> GridReady;
         public event Action<int, Type, object> ComponentChanged;
         public event Action GameOver;
+        public event Action SpawnsComplete;
 
         public static Events Instance { get; private set; }
 
@@ -109,6 +110,11 @@ namespace Game
         public void OnGameOver()
         {
             GameOver?.Invoke();
+        }
+
+        public void OnSpawnsComplete()
+        {
+            SpawnsComplete?.Invoke();
         }
     }
 }

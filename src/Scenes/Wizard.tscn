@@ -1,8 +1,9 @@
-[gd_scene load_steps=18 format=4 uid="uid://cu7aveyof5h02"]
+[gd_scene load_steps=19 format=4 uid="uid://cu7aveyof5h02"]
 
 [ext_resource type="Texture2D" uid="uid://b560ruc5rncem" path="res://assets/models/characters/Skeleton_Mage/Skeleton_Mage_skeleton_texture.png" id="1_eobo4"]
 [ext_resource type="AnimationLibrary" uid="uid://ccp41w2sxrumd" path="res://assets/models/animations/Character.res" id="2_g1uh0"]
 [ext_resource type="AnimationLibrary" uid="uid://4x2bd5fq0rpr" path="res://assets/models/animations/Movement.res" id="3_5dq0m"]
+[ext_resource type="AnimationLibrary" uid="uid://cynn3332r4gi8" path="res://assets/models/animations/Enemy.res" id="3_qge2d"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_wsnrg"]
 height = 1.49524
@@ -505,5 +506,6 @@ skin = SubResource("Skin_iqfa3")
 [node name="AnimationPlayer" type="AnimationPlayer" parent="Skeleton_Mage"]
 libraries = {
 &"Character": ExtResource("2_g1uh0"),
+&"Enemy": ExtResource("3_qge2d"),
 &"Movement": ExtResource("3_5dq0m")
 }

@@ -19,42 +19,59 @@ namespace Game
 
         private async void OnTurnChanged(Entity unit)
         {
-            // Only process enemy turns
-            if (!unit.Has<Enemy>())
-                return;
-
-            var player = Entities.Query<Player>().FirstOrDefault();
-            if (player == null)
-                return;
-
-            var enemyCoord = unit.Get<Coordinate>();
-            var playerCoord = player.Get<Coordinate>();
-
-            // Check if player is in attack range
-            var attackRangeTiles = RangeSystem.GetAttackRangeTiles(unit, enemyCoord);
-            bool playerInRange = attackRangeTiles.Contains(playerCoord);
-
-            if (playerInRange)
+            try
             {
-                // Pass turn - player already in range
-                _turnSystem.ExecuteEnemyPass(unit);
-            }
-            else
-            {
-                // Determine movement target based on enemy type
-                Vector3I targetPosition;
+                // Only process enemy turns
+                if (!unit.Has<Enemy>())
+                    return;
 
-                if (IsRangedUnitType(unit))
+                var player = Entities.Query<Player>().FirstOrDefault();
+                if (player == null)
+                    return;
+
+                var enemyCoord = unit.Get<Coordinate>();
+                var playerCoord = player.Get<Coordinate>();
+
+                // Check if player is in attack range
+                var attackRangeTiles = RangeSystem.GetAttackRangeTiles(unit, enemyCoord);
+                bool playerInRange = attackRangeTiles.Contains(playerCoord);
+
+                if (playerInRange)
                 {
-                    targetPosition = FindSniperTargetPosition(unit, enemyCoord, playerCoord, unit.Get<MoveRange>());
+                    // Pass turn - player already in range
+                    _turnSystem.ExecuteEnemyPass(unit);
                 }
                 else
                 {
-                    targetPosition = playerCoord;  // Grunt: move toward player
-                }
+                    // Determine movement target based on enemy type
+                    Vector3I targetPosition;
 
-                // Execute movement
-                await _turnSystem.ExecuteEnemyAction(unit, targetPosition);
+                    if (IsRangedUnitType(unit))
+                    {
+                        targetPosition = FindSniperTargetPosition(unit, enemyCoord, playerCoord, unit.Get<MoveRange>());
+                    }
+                    else
+                    {
+                        // Grunt: find best tile to move toward player
+                        targetPosition = FindGruntTargetPosition(unit, enemyCoord, playerCoord, unit.Get<MoveRange>());
+                    }
+
+                    // If target is same as current position, pass instead of moving
+                    if (targetPosition == enemyCoord)
+                    {
+                        _turnSystem.ExecuteEnemyPass(unit);
+                    }
+                    else
+                    {
+                        await _turnSystem.ExecuteEnemyAction(unit, targetPosition);
+                    }
+                }
+            }
+            catch (global::System.Exception ex)
+            {
+                GD.PrintErr($"[EnemySystem] Error during {unit.Get<Name>()} turn: {ex.Message}\n{ex.StackTrace}");
+                // Try to recover by passing the turn
+                _turnSystem.ExecuteEnemyPass(unit);
             }
         }
 
@@ -67,6 +84,39 @@ namespace Game
                    unit.Has<SniperAxisQ>() ||
                    unit.Has<SniperAxisR>() ||
                    unit.Has<SniperAxisS>();
+        }
+
+        /// <summary>
+        /// Find the best tile for a Grunt to move toward the player.
+        /// Picks the reachable tile within move range that gets closest to the player.
+        /// If no tile is closer, pick a tile at the same distance to keep moving.
+        /// </summary>
+        private Vector3I FindGruntTargetPosition(Entity grunt, Vector3I gruntCoord, Vector3I playerCoord, int moveRange)
+        {
+            // Get all actually reachable tiles (considers pathfinding, not just hex distance)
+            var reachableTiles = PathFinder.GetReachableCoords(gruntCoord, moveRange);
+
+            // Find the best tile: closest to player
+            Vector3I bestTile = gruntCoord;
+            int bestDistance = HexGrid.GetDistance(gruntCoord, playerCoord);
+
+            foreach (var pos in reachableTiles)
+            {
+                // Skip current position
+                if (pos == gruntCoord)
+                    continue;
+
+                int distance = HexGrid.GetDistance(pos, playerCoord);
+
+                // Prefer closer tiles, but also accept same distance (to keep moving around obstacles)
+                if (distance < bestDistance || (distance == bestDistance && bestTile == gruntCoord))
+                {
+                    bestDistance = distance;
+                    bestTile = pos;
+                }
+            }
+
+            return bestTile;
         }
 
         /// <summary>

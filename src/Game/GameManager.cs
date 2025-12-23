@@ -16,7 +16,6 @@ namespace Game
 
 			var entityManager = _systems.GetEntityManager();
 
-			// _systems.RegisterConcurrent<ComponentDebugSystem>();
 			_systems.RegisterConcurrent<DebugSystem>();
 			_systems.RegisterConcurrent<TileHighlightSystem>();
 
@@ -24,6 +23,7 @@ namespace Game
 			_systems.Register<AnimationSystem>();
 			_systems.Register<DashSystem>();
 			_systems.Register<BlockSystem>();
+			_systems.Register<GameStateManager>();
 			_systems.Register<UISystem>();
 			_systems.Register<TurnSystem>();
 			_systems.Register<EnemySystem>();
@@ -37,9 +37,6 @@ namespace Game
 			entityManager.Factory.CreateEnemy(UnitType.Grunt);
 			entityManager.Factory.CreateEnemy(UnitType.Grunt);
 			entityManager.Factory.CreateEnemy(UnitType.Wizard);
-			// entityManager.Factory.CreateEnemy(UnitType.SniperAxisS);
-			// entityManager.Factory.CreateEnemy(UnitType.SniperAxisQ);
-			// entityManager.Factory.CreateEnemy(UnitType.SniperAxisR);
 
 			_systems.Initialize();
 		}
@@ -51,9 +48,7 @@ namespace Game
 
 		private void OnGameOver()
 		{
-			GD.Print("=== GAME OVER ===");
-			GD.Print("The player has been defeated!");
-			// TODO: Show game over UI, restart option, etc.
+			// Game over - could show UI, restart option, etc.
 		}
 	}
 }

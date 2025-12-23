@@ -8,9 +8,9 @@ namespace Game
     {
         public static Tweener Instance { get; private set; }
         private const float DEFAULT_MOVEMENT_DURATION = Config.NormalMoveAnimationSpeed;
-        private const float DEFAULT_ROTATION_DURATION = 0.15f;
+        private const float DEFAULT_ROTATION_DURATION = Config.RotationAnimationSpeed;
         private const Tween.TransitionType DEFAULT_TRANS_TYPE = Tween.TransitionType.Sine;
-        private const Tween.EaseType DEFAULT_EASE_TYPE = Tween.EaseType.InOut;
+        private const Tween.EaseType DEFAULT_EASE_TYPE = Tween.EaseType.Out;
         private readonly Dictionary<Node, Tween> _activeTweens = [];
         public override void _Ready() => Instance = this;
 
@@ -123,7 +123,7 @@ namespace Game
         public async Task AttackAnimation(
             Node3D attacker,
             Vector3 targetPosition,
-            float lungeDuration = 0.15f)
+            float lungeDuration = Config.AttackLungeDuration)
         {
             if (attacker == null)
                 return;
@@ -135,8 +135,8 @@ namespace Game
             // Look at target first
             await LookAt(attacker, targetPosition, 0.1f);
 
-            // Lunge forward (80% of the way to target)
-            var lungePosition = startPosition.Lerp(targetPosition, 0.8f);
+            // Lunge forward
+            var lungePosition = startPosition.Lerp(targetPosition, Config.AttackLungeDistance);
 
             var lungeTween = CreateTween();
             _activeTweens[attacker] = lungeTween;

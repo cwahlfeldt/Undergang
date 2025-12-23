@@ -18,10 +18,8 @@ namespace Game
         private Entity _selectedTile;
         private DashSystem _dashSystem;
 
-        // Debouncing for hover pathfinding
+        // Track currently hovered tile
         private Entity _lastHoveredTile;
-        private ulong _lastHoverTime;
-        private const ulong HOVER_DEBOUNCE_MS = 50;
 
         // Mesh caching for material application
         private readonly Dictionary<int, List<MeshInstance3D>> _tileMeshCache = new();
@@ -50,64 +48,41 @@ namespace Game
             Events.TurnChanged += OnTurnChanged;
         }
 
+        /// <summary>
+        /// Clears the mesh cache - called after rewind when visual nodes are rebuilt
+        /// </summary>
+        public void ClearMeshCache()
+        {
+            _tileMeshCache.Clear();
+            _highlightedTiles.Clear();
+            _selectedTile = null;
+        }
+
         private void OnTileHover(Entity tile)
         {
-            ulong currentTime = Time.GetTicksMsec();
-
-            // Debounce: only recalculate if enough time has passed or it's a different tile
-            if (tile == _lastHoveredTile && (currentTime - _lastHoverTime) < HOVER_DEBOUNCE_MS)
+            // Skip if same tile or already highlighted
+            if (tile == _lastHoveredTile)
             {
                 return;
             }
 
+            // Clear previous hover highlight
+            ClearHighlightedTiles();
+
             _lastHoveredTile = tile;
-            _lastHoverTime = currentTime;
 
-            if (
-                tile != _selectedTile &&
-                !_highlightedTiles.Contains(tile))
+            // Only highlight traversable tiles
+            if (tile != null && tile.Has<Traversable>() && tile != _selectedTile)
             {
-                var player = Entities.Query<Player>().FirstOrDefault();
-
-                if (player != null && player.Has<CurrentTurn>())
-                {
-                    // Check if player is in dash mode
-                    if (player.Has<DashModeActive>())
-                    {
-                        // Don't show path preview for dash mode - handled by OnTurnChanged
-                        return;
-                    }
-
-                    var path = PathFinder.FindPath(player.Get<Coordinate>(), tile.Get<Coordinate>(), player.Get<MoveRange>());
-
-                    if (path.Count > 0)
-                    {
-                        // Clear previous highlights first
-                        ClearHighlightedTiles();
-
-                        // Highlight new tiles and add them to tracking
-                        foreach (Vector3I t in path)
-                        {
-                            var tileTile = Entities.GetAt(t);
-
-                            if (tileTile.Get<Coordinate>() != player.Get<Coordinate>())
-                            {
-                                SetTileMaterial(tileTile, _highlightMaterial);
-                                _highlightedTiles.Add(tileTile); // Add to tracking
-                            }
-                        }
-                    }
-                }
+                SetTileMaterial(tile, _highlightMaterial);
+                _highlightedTiles.Add(tile);
             }
         }
 
         private void OnTileUnhover(Entity tile)
         {
-            if (tile != null &&
-                tile != _selectedTile)
-            {
-                ClearHighlightedTiles();
-            }
+            // Don't clear on unhover - the next hover will handle clearing
+            // This keeps the highlight visible as cursor moves between tiles
         }
 
         private void OnUnitHover(Entity unit)
@@ -143,16 +118,12 @@ namespace Game
 
         private void OnTurnChanged(Entity unit)
         {
-            // Update dash range visualization when turn changes or dash mode toggles
+            // Update dash range visualization when player enters dash mode
             if (unit.Has<Player>() && unit.Has<DashModeActive>())
             {
                 UpdateDashRangeVisualization(unit);
             }
-            else
-            {
-                // Clear dash highlights if not in dash mode
-                ClearHighlightedTiles();
-            }
+            // Don't clear highlights on turn change - hover persists across all turns
         }
 
         /// <summary>
@@ -167,7 +138,13 @@ namespace Game
             }
             else
             {
+                // Exiting dash mode - clear dash highlights but restore hover if applicable
                 ClearHighlightedTiles();
+                if (_lastHoveredTile != null && _lastHoveredTile.Has<Traversable>())
+                {
+                    SetTileMaterial(_lastHoveredTile, _highlightMaterial);
+                    _highlightedTiles.Add(_lastHoveredTile);
+                }
             }
         }
 
@@ -197,44 +174,17 @@ namespace Game
             {
                 ClearTileMaterial(t);
             }
-            _highlightedTiles.Clear(); // Clear the tracking list
+            _highlightedTiles.Clear();
         }
-
-        // private void OnTileSelect(Entity tile)
-        // {
-        //     if (tile.Get<TileComponent>().Type != TileType.Blocked)
-        //     {
-        //         SelectTile(tile);
-        //     }
-        // }
 
         public async void SelectTile(Entity entity)
         {
             ClearSelection();
             _selectedTile = entity;
             SetTileMaterial(_selectedTile, _selectedMaterial);
-            await Task.Delay(TimeSpan.FromMilliseconds(500));
+            await Task.Delay(Config.TileSelectDurationMs);
             ClearSelection();
         }
-
-        // private void SelectMoveRangeTiles(Entity entity)
-        // {
-        //     ClearSelection();
-        //     var moveRangeMat = ResourceLoader.Load<StandardMaterial3D>("res://assets/materials/HexTileMoveRange.tres");
-
-        //     // Highlight neighboring tiles
-        //     // var rangedTiles = HexGrid.GetHexesInRange(entity.Get<HexCoordComponent>().Coord, entity.Get<MoveRangeComponent>().MoveRange);
-        //     var rangedTiles = Entities
-        //         .GetTilesInRange(entity.Get<TileComponent>().Coord, entity.Get<UnitComponent>().MoveRange);
-        //     foreach (var tile in rangedTiles)
-        //     {
-        //         if (tile != _selectedTile)
-        //         {
-        //             _highlightedTiles.Add(tile);
-        //             SetTileMaterial(tile, moveRangeMat);
-        //         }
-        //     }
-        // }
 
         private void ClearSelection()
         {
@@ -301,7 +251,6 @@ namespace Game
 
         public override void Cleanup()
         {
-            // EventBus.Instance.TileSelect -= OnTileSelect;
             Events.TileHover -= OnTileHover;
             Events.TileUnhover -= OnTileUnhover;
             Events.UnitHover -= OnUnitHover;

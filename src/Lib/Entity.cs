@@ -25,6 +25,15 @@ namespace Game
             Events.Instance.OnComponentChanged(Id, typeof(T), component);
         }
 
+        /// <summary>
+        /// Adds a component using runtime type information (for deserialization)
+        /// </summary>
+        public void AddComponent(Type type, object component)
+        {
+            _components[type] = component;
+            Events.Instance.OnComponentChanged(Id, type, component);
+        }
+
         public T Update<T>(T newComponent)
         {
             var result = (T)(_components[typeof(T)] = newComponent);

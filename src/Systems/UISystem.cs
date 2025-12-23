@@ -9,15 +9,82 @@ namespace Game
 {
     public class UISystem : System
     {
+        // Button color themes
+        private static readonly ButtonTheme DashTheme = new(
+            normal: new Color(0.2f, 0.5f, 1.0f, 0.8f),
+            hover: new Color(0.3f, 0.6f, 1.0f, 0.9f),
+            pressed: new Color(0.1f, 0.4f, 0.8f, 1.0f),
+            border: new Color(0.1f, 0.3f, 0.7f, 1.0f)
+        );
+
+        private static readonly ButtonTheme BlockTheme = new(
+            normal: new Color(0.2f, 0.8f, 0.3f, 0.8f),
+            hover: new Color(0.3f, 0.9f, 0.4f, 0.9f),
+            pressed: new Color(0.1f, 0.6f, 0.2f, 1.0f),
+            border: new Color(0.1f, 0.5f, 0.2f, 1.0f)
+        );
+
+        private static readonly ButtonTheme BlockActiveTheme = new(
+            normal: new Color(0.8f, 1.0f, 0.2f, 1.0f),
+            hover: new Color(0.8f, 1.0f, 0.2f, 1.0f),
+            pressed: new Color(0.8f, 1.0f, 0.2f, 1.0f),
+            border: new Color(0.5f, 0.7f, 0.1f, 1.0f),
+            borderWidth: 3
+        );
+
+        private static readonly ButtonTheme RewindTheme = new(
+            normal: new Color(0.6f, 0.2f, 0.8f, 0.8f),
+            hover: new Color(0.7f, 0.3f, 0.9f, 0.9f),
+            pressed: new Color(0.5f, 0.1f, 0.6f, 1.0f),
+            border: new Color(0.4f, 0.1f, 0.5f, 1.0f)
+        );
+
+        private static readonly ButtonTheme DisabledTheme = new(
+            normal: new Color(0.3f, 0.3f, 0.3f, 0.5f),
+            hover: new Color(0.3f, 0.3f, 0.3f, 0.5f),
+            pressed: new Color(0.3f, 0.3f, 0.3f, 0.5f),
+            border: new Color(0.2f, 0.2f, 0.2f, 1.0f)
+        );
+
+        private record ButtonTheme(Color normal, Color hover, Color pressed, Color border, int borderWidth = 2);
+
+        private static StyleBoxFlat CreateStyleBox(Color bgColor, Color borderColor, int borderWidth = 2)
+        {
+            return new StyleBoxFlat
+            {
+                BgColor = bgColor,
+                BorderColor = borderColor,
+                BorderWidthLeft = borderWidth,
+                BorderWidthRight = borderWidth,
+                BorderWidthTop = borderWidth,
+                BorderWidthBottom = borderWidth,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+        }
+
+        private static void ApplyButtonTheme(Button button, ButtonTheme theme)
+        {
+            button.AddThemeStyleboxOverride("normal", CreateStyleBox(theme.normal, theme.border, theme.borderWidth));
+            button.AddThemeStyleboxOverride("hover", CreateStyleBox(theme.hover, theme.border, theme.borderWidth));
+            button.AddThemeStyleboxOverride("pressed", CreateStyleBox(theme.pressed, theme.border, theme.borderWidth));
+            button.AddThemeStyleboxOverride("disabled", CreateStyleBox(DisabledTheme.normal, DisabledTheme.border));
+        }
+
         private readonly List<Control> _hearts = [];
         private Control _uiContainer;
         private Button _dashButton;
         private Label _dashCooldownLabel;
         private Button _blockButton;
         private Label _blockCooldownLabel;
+        private Button _rewindButton;
+        private Label _rewindCooldownLabel;
         private Label _fpsLabel;
         private DashSystem _dashSystem;
         private BlockSystem _blockSystem;
+        private GameStateManager _gameStateManager;
         private TileHighlightSystem _tileHighlightSystem;
         private const int HEART_SIZE = 48;
         private const int HEART_SPACING = 8;
@@ -61,6 +128,7 @@ namespace Game
             // Get system references
             _dashSystem = Systems.Get<DashSystem>();
             _blockSystem = Systems.Get<BlockSystem>();
+            _gameStateManager = Systems.Get<GameStateManager>();
             _tileHighlightSystem = Systems.Get<TileHighlightSystem>();
 
             // Create dash button
@@ -68,6 +136,9 @@ namespace Game
 
             // Create block button
             CreateBlockButton(canvasLayer);
+
+            // Create rewind button
+            CreateRewindButton(canvasLayer);
 
             // Create FPS counter
             CreateFpsCounter(canvasLayer);
@@ -94,6 +165,7 @@ namespace Game
             // Update ability button states (ensures UI stays in sync)
             UpdateDashButtonState();
             UpdateBlockButtonState();
+            UpdateRewindButtonState();
 
             // Update FPS counter
             UpdateFpsCounter();
@@ -181,68 +253,7 @@ namespace Game
                 Position = new Vector2(0, 0)
             };
 
-            // Style the button
-            var styleBoxNormal = new StyleBoxFlat
-            {
-                BgColor = new Color(0.2f, 0.5f, 1.0f, 0.8f),
-                BorderColor = new Color(0.1f, 0.3f, 0.7f, 1.0f),
-                BorderWidthLeft = 2,
-                BorderWidthRight = 2,
-                BorderWidthTop = 2,
-                BorderWidthBottom = 2,
-                CornerRadiusTopLeft = 8,
-                CornerRadiusTopRight = 8,
-                CornerRadiusBottomLeft = 8,
-                CornerRadiusBottomRight = 8
-            };
-
-            var styleBoxHover = new StyleBoxFlat
-            {
-                BgColor = new Color(0.3f, 0.6f, 1.0f, 0.9f),
-                BorderColor = new Color(0.1f, 0.3f, 0.7f, 1.0f),
-                BorderWidthLeft = 2,
-                BorderWidthRight = 2,
-                BorderWidthTop = 2,
-                BorderWidthBottom = 2,
-                CornerRadiusTopLeft = 8,
-                CornerRadiusTopRight = 8,
-                CornerRadiusBottomLeft = 8,
-                CornerRadiusBottomRight = 8
-            };
-
-            var styleBoxPressed = new StyleBoxFlat
-            {
-                BgColor = new Color(0.1f, 0.4f, 0.8f, 1.0f),
-                BorderColor = new Color(0.1f, 0.3f, 0.7f, 1.0f),
-                BorderWidthLeft = 2,
-                BorderWidthRight = 2,
-                BorderWidthTop = 2,
-                BorderWidthBottom = 2,
-                CornerRadiusTopLeft = 8,
-                CornerRadiusTopRight = 8,
-                CornerRadiusBottomLeft = 8,
-                CornerRadiusBottomRight = 8
-            };
-
-            var styleBoxDisabled = new StyleBoxFlat
-            {
-                BgColor = new Color(0.3f, 0.3f, 0.3f, 0.5f),
-                BorderColor = new Color(0.2f, 0.2f, 0.2f, 1.0f),
-                BorderWidthLeft = 2,
-                BorderWidthRight = 2,
-                BorderWidthTop = 2,
-                BorderWidthBottom = 2,
-                CornerRadiusTopLeft = 8,
-                CornerRadiusTopRight = 8,
-                CornerRadiusBottomLeft = 8,
-                CornerRadiusBottomRight = 8
-            };
-
-            _dashButton.AddThemeStyleboxOverride("normal", styleBoxNormal);
-            _dashButton.AddThemeStyleboxOverride("hover", styleBoxHover);
-            _dashButton.AddThemeStyleboxOverride("pressed", styleBoxPressed);
-            _dashButton.AddThemeStyleboxOverride("disabled", styleBoxDisabled);
-
+            ApplyButtonTheme(_dashButton, DashTheme);
             _dashButton.Pressed += OnDashButtonPressed;
             dashContainer.AddChild(_dashButton);
 
@@ -286,82 +297,7 @@ namespace Game
                 Position = new Vector2(0, 0)
             };
 
-            // Style the button (green/shield color theme)
-            var styleBoxNormal = new StyleBoxFlat
-            {
-                BgColor = new Color(0.2f, 0.8f, 0.3f, 0.8f),
-                BorderColor = new Color(0.1f, 0.5f, 0.2f, 1.0f),
-                BorderWidthLeft = 2,
-                BorderWidthRight = 2,
-                BorderWidthTop = 2,
-                BorderWidthBottom = 2,
-                CornerRadiusTopLeft = 8,
-                CornerRadiusTopRight = 8,
-                CornerRadiusBottomLeft = 8,
-                CornerRadiusBottomRight = 8
-            };
-
-            var styleBoxHover = new StyleBoxFlat
-            {
-                BgColor = new Color(0.3f, 0.9f, 0.4f, 0.9f),
-                BorderColor = new Color(0.1f, 0.5f, 0.2f, 1.0f),
-                BorderWidthLeft = 2,
-                BorderWidthRight = 2,
-                BorderWidthTop = 2,
-                BorderWidthBottom = 2,
-                CornerRadiusTopLeft = 8,
-                CornerRadiusTopRight = 8,
-                CornerRadiusBottomLeft = 8,
-                CornerRadiusBottomRight = 8
-            };
-
-            var styleBoxPressed = new StyleBoxFlat
-            {
-                BgColor = new Color(0.1f, 0.6f, 0.2f, 1.0f),
-                BorderColor = new Color(0.1f, 0.5f, 0.2f, 1.0f),
-                BorderWidthLeft = 2,
-                BorderWidthRight = 2,
-                BorderWidthTop = 2,
-                BorderWidthBottom = 2,
-                CornerRadiusTopLeft = 8,
-                CornerRadiusTopRight = 8,
-                CornerRadiusBottomLeft = 8,
-                CornerRadiusBottomRight = 8
-            };
-
-            var styleBoxDisabled = new StyleBoxFlat
-            {
-                BgColor = new Color(0.3f, 0.3f, 0.3f, 0.5f),
-                BorderColor = new Color(0.2f, 0.2f, 0.2f, 1.0f),
-                BorderWidthLeft = 2,
-                BorderWidthRight = 2,
-                BorderWidthTop = 2,
-                BorderWidthBottom = 2,
-                CornerRadiusTopLeft = 8,
-                CornerRadiusTopRight = 8,
-                CornerRadiusBottomLeft = 8,
-                CornerRadiusBottomRight = 8
-            };
-
-            var styleBoxActive = new StyleBoxFlat
-            {
-                BgColor = new Color(0.8f, 1.0f, 0.2f, 1.0f),  // Bright yellow-green when active
-                BorderColor = new Color(0.5f, 0.7f, 0.1f, 1.0f),
-                BorderWidthLeft = 3,
-                BorderWidthRight = 3,
-                BorderWidthTop = 3,
-                BorderWidthBottom = 3,
-                CornerRadiusTopLeft = 8,
-                CornerRadiusTopRight = 8,
-                CornerRadiusBottomLeft = 8,
-                CornerRadiusBottomRight = 8
-            };
-
-            _blockButton.AddThemeStyleboxOverride("normal", styleBoxNormal);
-            _blockButton.AddThemeStyleboxOverride("hover", styleBoxHover);
-            _blockButton.AddThemeStyleboxOverride("pressed", styleBoxPressed);
-            _blockButton.AddThemeStyleboxOverride("disabled", styleBoxDisabled);
-
+            ApplyButtonTheme(_blockButton, BlockTheme);
             _blockButton.Pressed += OnBlockButtonPressed;
             blockContainer.AddChild(_blockButton);
 
@@ -383,6 +319,62 @@ namespace Game
 
             // Initial update
             UpdateBlockButtonState();
+        }
+
+        private void CreateRewindButton(CanvasLayer canvasLayer)
+        {
+            // Create container for rewind button
+            var rewindContainer = new Control
+            {
+                Name = "RewindContainer",
+                Position = new Vector2(20, 280),  // Below block button
+                Size = new Vector2(200, 80)
+            };
+            canvasLayer.AddChild(rewindContainer);
+
+            // Create rewind button
+            _rewindButton = new Button
+            {
+                Name = "RewindButton",
+                Text = "REWIND",
+                Size = new Vector2(180, 50),
+                Position = new Vector2(0, 0)
+            };
+
+            ApplyButtonTheme(_rewindButton, RewindTheme);
+            _rewindButton.Pressed += OnRewindButtonPressed;
+            rewindContainer.AddChild(_rewindButton);
+
+            // Create cooldown label
+            _rewindCooldownLabel = new Label
+            {
+                Name = "RewindCooldownLabel",
+                Position = new Vector2(0, 55),
+                Size = new Vector2(180, 25),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Visible = false
+            };
+
+            _rewindCooldownLabel.AddThemeFontSizeOverride("font_size", 18);
+            _rewindCooldownLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.3f, 0.3f, 1.0f));
+
+            rewindContainer.AddChild(_rewindCooldownLabel);
+
+            // Initial update
+            UpdateRewindButtonState();
+        }
+
+        private async void OnRewindButtonPressed()
+        {
+            if (_player == null) return;
+
+            if (_gameStateManager.CanRewind)
+            {
+                await _gameStateManager.RewindOneTurn();
+                // Update button state after rewind
+                UpdateRewindButtonState();
+            }
         }
 
         private void OnBlockButtonPressed()
@@ -412,11 +404,26 @@ namespace Game
 
         private void OnTurnChanged(Entity unit)
         {
+            // Refresh player reference in case entity was recreated (e.g., after rewind)
+            _player = Entities.Query<Player>().FirstOrDefault();
+
+            // Update health display
+            if (_player != null && _player.Has<Health>())
+            {
+                int health = _player.Get<Health>();
+                if (health != _currentPlayerHealth)
+                {
+                    _currentPlayerHealth = health;
+                    UpdateHearts(_currentPlayerHealth);
+                }
+            }
+
             // Update ability buttons when turn changes
             if (unit.Has<Player>())
             {
                 UpdateDashButtonState();
                 UpdateBlockButtonState();
+                UpdateRewindButtonState();
             }
         }
 
@@ -464,24 +471,9 @@ namespace Game
             {
                 // Block is active - can be toggled off
                 _blockButton.Text = "BLOCK (ACTIVE!)";
-                _blockButton.Disabled = false;  // Allow toggling off
+                _blockButton.Disabled = false;
                 _blockCooldownLabel.Visible = false;
-
-                // Use special active style
-                var styleBoxActive = new StyleBoxFlat
-                {
-                    BgColor = new Color(0.8f, 1.0f, 0.2f, 1.0f),
-                    BorderColor = new Color(0.5f, 0.7f, 0.1f, 1.0f),
-                    BorderWidthLeft = 3,
-                    BorderWidthRight = 3,
-                    BorderWidthTop = 3,
-                    BorderWidthBottom = 3,
-                    CornerRadiusTopLeft = 8,
-                    CornerRadiusTopRight = 8,
-                    CornerRadiusBottomLeft = 8,
-                    CornerRadiusBottomRight = 8
-                };
-                _blockButton.AddThemeStyleboxOverride("normal", styleBoxActive);
+                _blockButton.AddThemeStyleboxOverride("normal", CreateStyleBox(BlockActiveTheme.normal, BlockActiveTheme.border, BlockActiveTheme.borderWidth));
             }
             else if (isBlockAvailable)
             {
@@ -489,22 +481,7 @@ namespace Game
                 _blockButton.Text = "BLOCK (B)";
                 _blockButton.Disabled = false;
                 _blockCooldownLabel.Visible = false;
-
-                // Restore normal style
-                var styleBoxNormal = new StyleBoxFlat
-                {
-                    BgColor = new Color(0.2f, 0.8f, 0.3f, 0.8f),
-                    BorderColor = new Color(0.1f, 0.5f, 0.2f, 1.0f),
-                    BorderWidthLeft = 2,
-                    BorderWidthRight = 2,
-                    BorderWidthTop = 2,
-                    BorderWidthBottom = 2,
-                    CornerRadiusTopLeft = 8,
-                    CornerRadiusTopRight = 8,
-                    CornerRadiusBottomLeft = 8,
-                    CornerRadiusBottomRight = 8
-                };
-                _blockButton.AddThemeStyleboxOverride("normal", styleBoxNormal);
+                _blockButton.AddThemeStyleboxOverride("normal", CreateStyleBox(BlockTheme.normal, BlockTheme.border));
             }
             else
             {
@@ -513,6 +490,40 @@ namespace Game
                 _blockButton.Disabled = true;
                 _blockCooldownLabel.Text = $"Cooldown: {cooldown}";
                 _blockCooldownLabel.Visible = true;
+            }
+        }
+
+        private void UpdateRewindButtonState()
+        {
+            if (_rewindButton == null || _gameStateManager == null) return;
+
+            bool canRewind = _gameStateManager.CanRewind;
+            int cooldown = _gameStateManager.CooldownRemaining;
+            bool hasSnapshot = _gameStateManager.HistoryDepth > 0;
+
+            if (canRewind)
+            {
+                // Rewind is available - show history depth
+                int depth = _gameStateManager.HistoryDepth;
+                _rewindButton.Text = depth > 1 ? $"REWIND ({depth})" : "REWIND";
+                _rewindButton.Disabled = false;
+                _rewindCooldownLabel.Visible = false;
+            }
+            else if (cooldown > 0)
+            {
+                // Rewind is on cooldown
+                _rewindButton.Text = "REWIND";
+                _rewindButton.Disabled = true;
+                _rewindCooldownLabel.Text = $"Cooldown: {cooldown}";
+                _rewindCooldownLabel.Visible = true;
+            }
+            else if (!hasSnapshot)
+            {
+                // No snapshot available yet
+                _rewindButton.Text = "REWIND";
+                _rewindButton.Disabled = true;
+                _rewindCooldownLabel.Text = "No snapshot";
+                _rewindCooldownLabel.Visible = true;
             }
         }
 
@@ -563,6 +574,7 @@ namespace Game
             {
                 UpdateDashButtonState();
                 UpdateBlockButtonState();
+                UpdateRewindButtonState();
             }
         }
 
@@ -580,6 +592,11 @@ namespace Game
             if (_blockButton != null)
             {
                 _blockButton.Pressed -= OnBlockButtonPressed;
+            }
+
+            if (_rewindButton != null)
+            {
+                _rewindButton.Pressed -= OnRewindButtonPressed;
             }
 
             foreach (var heart in _hearts)
