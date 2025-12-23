@@ -36,6 +36,7 @@ public record Config
     public const float RespawnFadeInDuration = 0.5f;
 
     // Animation settings
+    public const float AnimationBlendTime = 0.2f;
     public const float RotationAnimationSpeed = 0.15f;
     public const int SpawnStaggerDelayMs = 300;
     public const int PlayerSpawnDelayMs = 600;

@@ -177,7 +177,8 @@ namespace Game
                     ? Godot.Animation.LoopModeEnum.Linear
                     : Godot.Animation.LoopModeEnum.None;
 
-                animationPlayer.Play(animationName);
+                // Use crossfade blend for smooth transitions between animation states
+                animationPlayer.Play(animationName, Config.AnimationBlendTime);
             }
             // If no animation found, silently continue (graceful degradation)
         }
