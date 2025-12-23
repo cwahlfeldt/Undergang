@@ -9,17 +9,21 @@ Undergang is a turn-based tactical game built with Godot 4.5 and C#. The game fe
 ## Build and Development Commands
 
 ### Building the Project
+
 ```bash
 dotnet build
 ```
+
 The project uses .NET 8.0 and builds to `.godot/mono/temp/bin/Debug/Undergang.dll`.
 
 ### Running the Game
+
 Open the project in Godot 4.5 and run from the editor, or use Godot's export functionality.
 
 ## Architecture
 
 ### Hybrid ECS Architecture
+
 The game uses a **hybrid ECS architecture** optimized for turn-based gameplay:
 
 - **Entities**: Simple containers with unique IDs that hold components (`src/Lib/Entity.cs`)
@@ -30,11 +34,14 @@ The game uses a **hybrid ECS architecture** optimized for turn-based gameplay:
 **Key Philosophy**: Use ECS for entity management and queries. Use direct orchestration for turn flow and action sequencing.
 
 ### Core Systems
+
 Systems are managed by the `Systems` class (`src/Services/Systems.cs`) and can be:
+
 - **Sequential**: Execute one after another in turn-based updates
 - **Concurrent**: Execute simultaneously for performance
 
 Key systems include:
+
 - `TurnSystem`: Manages turn order and progression
 - `PlayerSystem`: Handles player input and actions
 - `EnemySystem`: AI behavior for enemy units
@@ -43,21 +50,25 @@ Key systems include:
 - `RenderSystem`: Visual representation of game state
 
 ### Hex Grid System
+
 The game uses a hex-based coordinate system (`src/Lib/HexGrid.cs`) with:
+
 - Cube coordinates (Vector3I) for hex positions
 - Range calculations for movement and attack
 - Pathfinding integration
 
 ### Services
+
 - **Events**: Global event system for decoupled communication (`src/Services/Events.cs`)
 - **Entities**: Entity storage, management, and queries (`src/Services/Entities.cs`)
 - **EntityFactory**: Entity creation (grid, tiles, units) - accessed via `Entities.Factory` (`src/Services/EntityFactory.cs`)
-- **PathFinder**: A* pathfinding on the hex grid (`src/Services/PathFinder.cs`)
+- **PathFinder**: A\* pathfinding on the hex grid (`src/Services/PathFinder.cs`)
 - **Materials**: Material management for visual effects (`src/Services/Materials.cs`)
 - **Tweener**: Animation and interpolation system (`src/Services/Tweener.cs`)
 - **Systems**: System registry and lifecycle management (`src/Services/Systems.cs`)
 
 ### Game Flow
+
 1. `GameManager` initializes the systems and creates the initial game state
 2. Events trigger system updates through the turn-based cycle
 3. Systems process entities and update game state
@@ -66,9 +77,11 @@ The game uses a hex-based coordinate system (`src/Lib/HexGrid.cs`) with:
 ## Key Patterns
 
 ### Component Organization (Phase 3 Refactoring)
+
 Components are organized by domain in separate files for better maintainability:
 
 **File Structure:**
+
 - `src/Components/Core.cs` - Tile, Instance, Name, Coordinate, TileIndex
 - `src/Components/Combat.cs` - Health, Damage, AttackRange, Attacker, Target
 - `src/Components/Movement.cs` - Movement, MoveRange
@@ -80,13 +93,17 @@ Components are organized by domain in separate files for better maintainability:
 All components remain in the `Game.Components` namespace. Import with: `using Game.Components;`
 
 ### Component Design
+
 Components are implemented as readonly record structs with implicit operators:
+
 ```csharp
 public record struct Health(int Value) { public static implicit operator int(Health health) => health.Value; }
 ```
 
 ### Entity Creation (EntityFactory Pattern)
+
 Use the EntityFactory for creating game entities:
+
 ```csharp
 // Access factory via Entities service
 var player = entityManager.Factory.CreatePlayer();
@@ -95,7 +112,9 @@ var grid = entityManager.Factory.CreateGrid(mapSize: 5, blockedTilesAmt: 16);
 ```
 
 ### Entity Queries
+
 The `Entities` service provides LINQ-style queries:
+
 ```csharp
 var enemies = entities.Query<Unit, Enemy>();
 var player = entities.Query<Player>().FirstOrDefault();
@@ -103,7 +122,9 @@ var tiles = entities.GetTilesInRange(coord, range);
 ```
 
 ### Configuration Management (Centralized)
+
 All game constants are defined in `Config.cs`:
+
 ```csharp
 Config.PlayerStart              // Player spawn position
 Config.PlayerSpawnExclusionRadius  // Enemy spawn exclusion
@@ -114,7 +135,9 @@ Config.DiagonalRangeMin/Max     // Range pattern configuration
 **Best Practice**: Never hardcode game values. Always use Config constants.
 
 ### System Dependencies
+
 Systems receive dependencies through lazy initialization:
+
 ```csharp
 public override void Initialize()
 {
@@ -126,13 +149,16 @@ public override void Initialize()
 **Future Improvement**: See `ARCHITECTURE.md` for recommended constructor injection pattern.
 
 ### Event Usage
+
 Events are used for **notifications**, not control flow:
+
 - ✅ Use events for: UI updates, cross-system notifications
 - ❌ Avoid events for: Turn sequencing, action orchestration
 
 **See ARCHITECTURE.md** for recommended turn orchestration pattern.
 
 ## Scene Structure
+
 - **Main.tscn**: Entry point scene
 - **Board.tscn**: Game board visualization
 - **Player.tscn**: Player unit representation
@@ -140,6 +166,7 @@ Events are used for **notifications**, not control flow:
 - **HexTile.tscn**: Individual hex tile visualization
 
 ## Configuration
+
 - `Config.cs`: Game configuration constants
 - `project.godot`: Godot project settings
 - `Undergang.csproj`: .NET project configuration with Godot.NET.Sdk
@@ -147,6 +174,7 @@ Events are used for **notifications**, not control flow:
 ## Development Notes
 
 ### Adding New Systems
+
 1. Create a class inheriting from `System` in `src/Systems/`
 2. Register it in `GameManager._Ready()` using `_systems.Register<T>()` or `_systems.RegisterConcurrent<T>()`
 3. Implement lifecycle methods:
@@ -158,6 +186,7 @@ Events are used for **notifications**, not control flow:
 **Note**: Consider whether your system needs `Update()` polling or should use direct method calls. See `ARCHITECTURE.md` for guidance.
 
 ### Adding New Components
+
 1. Choose the appropriate domain file in `src/Components/`:
    - Core: Tiles, coordinates, basic properties
    - Combat: Health, damage, attack-related
@@ -181,6 +210,7 @@ Events are used for **notifications**, not control flow:
 **If adding a new domain**, create a new file following the existing pattern.
 
 ### Entity Management
+
 - **Creation**: Use `Entities.Factory.CreateX()` methods
   ```csharp
   var enemy = Entities.Factory.CreateEnemy(UnitType.Sniper);
@@ -202,12 +232,14 @@ Events are used for **notifications**, not control flow:
   ```
 
 ### Configuration
+
 - **Always use Config constants** instead of hardcoding values
 - Add new constants to appropriate section in `Config.cs`:
   - Player settings
   - Map generation settings
   - Range settings
 - Example:
+
   ```csharp
   // Bad
   var range = 5;
@@ -218,6 +250,7 @@ Events are used for **notifications**, not control flow:
   ```
 
 ### Code Quality Best Practices
+
 1. **No magic numbers** - Use Config constants
 2. **DRY principle** - Extract duplicate code into helpers
 3. **Clear naming** - Methods should describe their action
@@ -225,7 +258,9 @@ Events are used for **notifications**, not control flow:
 5. **Documentation** - Add XML comments for public methods and complex logic
 
 ### Recent Refactoring (Phases 1-3)
+
 The codebase has undergone significant cleanup:
+
 - **Phase 1**: Critical bug fixes, code deduplication
 - **Phase 2**: Configuration centralization, EntityFactory separation, complete range implementations
 - **Phase 3**: Component organization into domain-focused files
@@ -239,12 +274,15 @@ The game implements **Hoplite-style tactical combat** where positioning and move
 ### Core Combat Mechanics
 
 #### Attack Triggers
+
 1. **Enemy Reactive Attacks**: Enemies attack when the player moves INTO their threat range
+
    - Happens during player's turn, triggered by player movement
    - Enemy does NOT move when attacking reactively
    - Only triggers when entering a NEW enemy's range (not when already adjacent)
 
 2. **Player Attacks**: Player attacks when moving WITHIN an enemy's range
+
    - Player must be ALREADY adjacent to an enemy before moving
    - Moving to another tile still adjacent to the same enemy triggers attack
    - Does NOT trigger when first entering enemy range
@@ -256,12 +294,14 @@ The game implements **Hoplite-style tactical combat** where positioning and move
 ### Combat Flow Implementation
 
 **Key Files:**
+
 - `src/Systems/CombatSystem.cs` - Combat resolution and damage application
 - `src/Systems/MovementSystem.cs` - Combat trigger logic during movement
 - `src/Systems/EnemySystem.cs` - Enemy AI and turn behavior
 - `src/Systems/RangeSystem.cs` - Attack range calculation and threat marking
 
 **Combat Resolution Steps:**
+
 1. Check if combat should trigger (based on movement and position)
 2. Play attack animation (lunge forward and back)
 3. Apply damage to defender
@@ -274,12 +314,14 @@ The game implements **Hoplite-style tactical combat** where positioning and move
 The game features a comprehensive animation system designed for Mixamo-rigged characters:
 
 **Files:**
+
 - `src/Systems/AnimationSystem.cs` - State-based animation controller
 - `src/Components/Components.cs` - Animation components (`CurrentAnimation`, `AnimationPlayer`)
 - `src/Lib/Enums/AnimationState.cs` - Animation states enum
 - `ANIMATIONS.md` - Complete animation integration guide
 
 **Animation States:**
+
 - `Idle` - Default resting state
 - `Move` - Walking/running animation
 - `Attack` - Attack animation
@@ -288,21 +330,25 @@ The game features a comprehensive animation system designed for Mixamo-rigged ch
 - `Spawn`, `Victory`, `Defeat` - Optional states
 
 **Automatic Triggers:**
+
 - Movement → Sets `Move` state during movement, returns to `Idle` when complete
 - Combat → Plays `Attack` (attacker) and `Hurt` (defender) animations
 - Defeat → Triggers `Die` animation
 
 **Animation Naming Convention:**
 Animations must be named: `{UnitType}_{AnimationState}`
+
 - Examples: `Player_Idle`, `Grunt_Attack`, `Sniper_Move`
 
 **Fallback Behavior:**
+
 - System works without animations (graceful degradation)
 - Uses Tweener for basic movement interpolation as fallback
 - No errors if AnimationPlayer or animations are missing
 
 **Integration:**
 The system is ready for Mixamo characters. See `ANIMATIONS.md` for complete workflow:
+
 1. Download character + animations from Mixamo
 2. Import FBX files into Godot
 3. Rename animations following convention
@@ -314,6 +360,7 @@ The system is ready for Mixamo characters. See `ANIMATIONS.md` for complete work
 The game supports multiple attack range patterns through components:
 
 **Range Type Components (All Implemented):**
+
 - `RangeCircle` - Adjacent tiles (6 hex neighbors)
 - `RangeDiagonal` - Directional lines along 6 hex directions, distance 2-5 (Hoplite Archer style)
 - `RangeHex` - Hex ring at specific distance (tiles exactly N steps away)
@@ -323,12 +370,14 @@ The game supports multiple attack range patterns through components:
 All range patterns are configurable via `Config.cs` constants.
 
 **Dynamic Range Calculation:**
+
 ```csharp
 // Automatically determines range based on unit's range type component
 var attackTiles = RangeSystem.GetAttackRangeTiles(unit, position);
 ```
 
 **Threat Zone Marking:**
+
 - Each frame, `RangeSystem.UpdateRanges()` marks all tiles within each unit's attack range
 - Tiles get `AttackRangeTile(unitId)` component indicating which unit threatens them
 - Used by MovementSystem to detect when player enters enemy threat zones
@@ -336,6 +385,7 @@ var attackTiles = RangeSystem.GetAttackRangeTiles(unit, position);
 ### Combat Components
 
 **Essential Combat Components:**
+
 - `Health(int)` - Current hit points
 - `Damage(int)` - Attack damage value
 - `AttackRange(int)` - Attack range distance
@@ -349,6 +399,7 @@ var attackTiles = RangeSystem.GetAttackRangeTiles(unit, position);
 Example: Creating a ranged sniper enemy with diagonal range:
 
 1. **Implement the range pattern** in `RangeSystem`:
+
 ```csharp
 public static IEnumerable<Vector3I> GetRangeDiagonal(Vector3I center)
 {
@@ -365,6 +416,7 @@ public static IEnumerable<Vector3I> GetRangeDiagonal(Vector3I center)
 ```
 
 2. **Create the enemy** with the range component:
+
 ```csharp
 var sniper = Entities.Factory.CreateEnemy(UnitType.Sniper);
 sniper.Add(new RangeDiagonal());  // Automatically uses diagonal range
@@ -385,11 +437,13 @@ sniper.Add(new Health(3));
 ### Debugging Combat
 
 Debug output in `CombatSystem.ResolveCombat()` shows:
+
 - Attacker/Defender IDs and types (Enemy/Player)
 - Damage dealt and health changes
 - Combat trigger location
 
 Enable verbose logging to trace:
+
 - When enemies pass turn vs move
 - When player enters/exits threat zones
 - When attacks trigger and why
@@ -399,12 +453,15 @@ Enable verbose logging to trace:
 ## Additional Documentation
 
 ### Architecture & Patterns
+
 - **ARCHITECTURE.md** - Detailed guide on turn flow orchestration and the recommended "Option 2" pattern for improving turn-based game flow. Read this for architectural guidance on explicit action sequencing vs event-driven patterns.
 
 ### Animation System
+
 - **ANIMATIONS.md** - Complete guide for integrating Mixamo characters and animations
 
 ### Project Files
+
 - **README.md** - Project overview and quick start guide
 - **.gitignore** - Git ignore patterns
 - **project.godot** - Godot engine configuration
@@ -416,6 +473,7 @@ Enable verbose logging to trace:
 Undergang is a well-structured turn-based tactical game using a hybrid ECS architecture. The codebase has been recently refactored (Phases 1-3) for improved maintainability, with centralized configuration, organized components, and clear separation between entity creation and management.
 
 **Key strengths:**
+
 - Clean component-based design
 - Flexible range system supporting multiple attack patterns
 - Hoplite-style tactical combat mechanics
@@ -423,6 +481,7 @@ Undergang is a well-structured turn-based tactical game using a hybrid ECS archi
 - Well-documented codebase with clear patterns
 
 **For new developers:**
+
 1. Start by reading this file completely
 2. Review `ARCHITECTURE.md` for turn flow patterns
 3. Explore `src/Components/` to understand data structures
@@ -430,6 +489,7 @@ Undergang is a well-structured turn-based tactical game using a hybrid ECS archi
 5. Check `Config.cs` for game constants
 
 **When making changes:**
+
 - Use Config constants, never hardcode values
 - Add components to appropriate domain file
 - Use EntityFactory for entity creation

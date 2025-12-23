@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Game.Components;
@@ -11,12 +12,18 @@ namespace Game
         private MovementSystem _movementSystem;
         private AnimationSystem _animationSystem;
         private DashSystem _dashSystem;
+        private GameStateManager _gameStateManager;
+        private Dictionary<int, Vector3I> _positionsBeforeAction = new();  // Track positions before units act
 
         public override void Initialize()
         {
             _movementSystem = Systems.Get<MovementSystem>();
             _animationSystem = Systems.Get<AnimationSystem>();
             _dashSystem = Systems.Get<DashSystem>();
+            _gameStateManager = Systems.Get<GameStateManager>();
+
+            // Set the TurnSystem reference in GameStateManager to avoid circular dependency
+            _gameStateManager.SetTurnSystem(this);
 
             SetupInitialTurnOrder();
         }
@@ -134,9 +141,49 @@ namespace Game
 
         private void StartUnitTurn(Entity unit)
         {
+            // Store current positions before any actions
+            if (unit.Has<Coordinate>())
+            {
+                _positionsBeforeAction[unit.Id] = unit.Get<Coordinate>().Value;
+            }
+
+            // Capture snapshot at START of player's turn (BEFORE they act)
+            // This ensures health, position, and all state is captured before any combat
+            if (unit.Has<Player>())
+            {
+                _gameStateManager.CaptureSnapshot(_currentTurnIndex);
+                _gameStateManager.TickCooldown();
+            }
+
             unit.Add(new CurrentTurn());
             unit.Add(new WaitingForAction());
             Events.OnTurnChanged(unit);  // Notify UI and other systems
+        }
+
+        /// <summary>
+        /// Restarts the player's turn after a rewind
+        /// </summary>
+        public void RestartPlayerTurn(int restoredTurnIndex)
+        {
+            // Find player and reset to their turn
+            var player = Entities.Query<Player>().FirstOrDefault();
+            if (player == null) return;
+
+            // Clear any existing turn state from all units
+            foreach (var unit in Entities.Query<TurnOrder>())
+            {
+                unit.Remove<CurrentTurn>();
+                unit.Remove<WaitingForAction>();
+            }
+
+            // Restore the turn index from the snapshot
+            _currentTurnIndex = restoredTurnIndex;
+
+            // DON'T call StartUnitTurn - it would overwrite _positionsBeforeAction
+            // Instead, manually set up the player's turn state
+            player.Add(new CurrentTurn());
+            player.Add(new WaitingForAction());
+            Events.OnTurnChanged(player);
         }
     }
 }

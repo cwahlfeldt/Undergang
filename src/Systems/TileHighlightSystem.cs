@@ -50,6 +50,16 @@ namespace Game
             Events.TurnChanged += OnTurnChanged;
         }
 
+        /// <summary>
+        /// Clears the mesh cache - called after rewind when visual nodes are rebuilt
+        /// </summary>
+        public void ClearMeshCache()
+        {
+            _tileMeshCache.Clear();
+            _highlightedTiles.Clear();
+            _selectedTile = null;
+        }
+
         private void OnTileHover(Entity tile)
         {
             ulong currentTime = Time.GetTicksMsec();

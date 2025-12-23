@@ -29,4 +29,10 @@ public record Config
     // Block ability settings
     public const int BlockCooldown = 3;
     public const int BlockDuration = 1;  // Number of turns block stays active
+
+    // Rewind feature settings
+    public const int RewindCooldownTurns = 3;  // Turns to wait between rewinds
+    public const int MaxHistoryDepth = 100;    // Max snapshots to retain (full history)
+    public const float RewindAnimationSpeed = 0.3f;  // Speed of rewind animation
+    public const float RespawnFadeInDuration = 0.5f; // Duration of fade-in for respawned units
 }

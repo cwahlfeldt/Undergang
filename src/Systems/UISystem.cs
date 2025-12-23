@@ -15,9 +15,12 @@ namespace Game
         private Label _dashCooldownLabel;
         private Button _blockButton;
         private Label _blockCooldownLabel;
+        private Button _rewindButton;
+        private Label _rewindCooldownLabel;
         private Label _fpsLabel;
         private DashSystem _dashSystem;
         private BlockSystem _blockSystem;
+        private GameStateManager _gameStateManager;
         private TileHighlightSystem _tileHighlightSystem;
         private const int HEART_SIZE = 48;
         private const int HEART_SPACING = 8;
@@ -61,6 +64,7 @@ namespace Game
             // Get system references
             _dashSystem = Systems.Get<DashSystem>();
             _blockSystem = Systems.Get<BlockSystem>();
+            _gameStateManager = Systems.Get<GameStateManager>();
             _tileHighlightSystem = Systems.Get<TileHighlightSystem>();
 
             // Create dash button
@@ -68,6 +72,9 @@ namespace Game
 
             // Create block button
             CreateBlockButton(canvasLayer);
+
+            // Create rewind button
+            CreateRewindButton(canvasLayer);
 
             // Create FPS counter
             CreateFpsCounter(canvasLayer);
@@ -94,6 +101,7 @@ namespace Game
             // Update ability button states (ensures UI stays in sync)
             UpdateDashButtonState();
             UpdateBlockButtonState();
+            UpdateRewindButtonState();
 
             // Update FPS counter
             UpdateFpsCounter();
@@ -385,6 +393,123 @@ namespace Game
             UpdateBlockButtonState();
         }
 
+        private void CreateRewindButton(CanvasLayer canvasLayer)
+        {
+            // Create container for rewind button
+            var rewindContainer = new Control
+            {
+                Name = "RewindContainer",
+                Position = new Vector2(20, 280),  // Below block button
+                Size = new Vector2(200, 80)
+            };
+            canvasLayer.AddChild(rewindContainer);
+
+            // Create rewind button
+            _rewindButton = new Button
+            {
+                Name = "RewindButton",
+                Text = "REWIND",
+                Size = new Vector2(180, 50),
+                Position = new Vector2(0, 0)
+            };
+
+            // Style the button (purple/time theme)
+            var styleBoxNormal = new StyleBoxFlat
+            {
+                BgColor = new Color(0.6f, 0.2f, 0.8f, 0.8f),
+                BorderColor = new Color(0.4f, 0.1f, 0.5f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            var styleBoxHover = new StyleBoxFlat
+            {
+                BgColor = new Color(0.7f, 0.3f, 0.9f, 0.9f),
+                BorderColor = new Color(0.4f, 0.1f, 0.5f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            var styleBoxPressed = new StyleBoxFlat
+            {
+                BgColor = new Color(0.5f, 0.1f, 0.6f, 1.0f),
+                BorderColor = new Color(0.4f, 0.1f, 0.5f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            var styleBoxDisabled = new StyleBoxFlat
+            {
+                BgColor = new Color(0.3f, 0.3f, 0.3f, 0.5f),
+                BorderColor = new Color(0.2f, 0.2f, 0.2f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8
+            };
+
+            _rewindButton.AddThemeStyleboxOverride("normal", styleBoxNormal);
+            _rewindButton.AddThemeStyleboxOverride("hover", styleBoxHover);
+            _rewindButton.AddThemeStyleboxOverride("pressed", styleBoxPressed);
+            _rewindButton.AddThemeStyleboxOverride("disabled", styleBoxDisabled);
+
+            _rewindButton.Pressed += OnRewindButtonPressed;
+            rewindContainer.AddChild(_rewindButton);
+
+            // Create cooldown label
+            _rewindCooldownLabel = new Label
+            {
+                Name = "RewindCooldownLabel",
+                Position = new Vector2(0, 55),
+                Size = new Vector2(180, 25),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Visible = false
+            };
+
+            _rewindCooldownLabel.AddThemeFontSizeOverride("font_size", 18);
+            _rewindCooldownLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.3f, 0.3f, 1.0f));
+
+            rewindContainer.AddChild(_rewindCooldownLabel);
+
+            // Initial update
+            UpdateRewindButtonState();
+        }
+
+        private async void OnRewindButtonPressed()
+        {
+            if (_player == null) return;
+
+            if (_gameStateManager.CanRewind)
+            {
+                await _gameStateManager.RewindOneTurn();
+                // Update button state after rewind
+                UpdateRewindButtonState();
+            }
+        }
+
         private void OnBlockButtonPressed()
         {
             if (_player == null) return;
@@ -412,11 +537,26 @@ namespace Game
 
         private void OnTurnChanged(Entity unit)
         {
+            // Refresh player reference in case entity was recreated (e.g., after rewind)
+            _player = Entities.Query<Player>().FirstOrDefault();
+
+            // Update health display
+            if (_player != null && _player.Has<Health>())
+            {
+                int health = _player.Get<Health>();
+                if (health != _currentPlayerHealth)
+                {
+                    _currentPlayerHealth = health;
+                    UpdateHearts(_currentPlayerHealth);
+                }
+            }
+
             // Update ability buttons when turn changes
             if (unit.Has<Player>())
             {
                 UpdateDashButtonState();
                 UpdateBlockButtonState();
+                UpdateRewindButtonState();
             }
         }
 
@@ -516,6 +656,40 @@ namespace Game
             }
         }
 
+        private void UpdateRewindButtonState()
+        {
+            if (_rewindButton == null || _gameStateManager == null) return;
+
+            bool canRewind = _gameStateManager.CanRewind;
+            int cooldown = _gameStateManager.CooldownRemaining;
+            bool hasSnapshot = _gameStateManager.HistoryDepth > 0;
+
+            if (canRewind)
+            {
+                // Rewind is available - show history depth
+                int depth = _gameStateManager.HistoryDepth;
+                _rewindButton.Text = depth > 1 ? $"REWIND ({depth})" : "REWIND";
+                _rewindButton.Disabled = false;
+                _rewindCooldownLabel.Visible = false;
+            }
+            else if (cooldown > 0)
+            {
+                // Rewind is on cooldown
+                _rewindButton.Text = "REWIND";
+                _rewindButton.Disabled = true;
+                _rewindCooldownLabel.Text = $"Cooldown: {cooldown}";
+                _rewindCooldownLabel.Visible = true;
+            }
+            else if (!hasSnapshot)
+            {
+                // No snapshot available yet
+                _rewindButton.Text = "REWIND";
+                _rewindButton.Disabled = true;
+                _rewindCooldownLabel.Text = "No snapshot";
+                _rewindCooldownLabel.Visible = true;
+            }
+        }
+
         private void CreateFpsCounter(CanvasLayer canvasLayer)
         {
             // Create FPS label in top-right corner
@@ -563,6 +737,7 @@ namespace Game
             {
                 UpdateDashButtonState();
                 UpdateBlockButtonState();
+                UpdateRewindButtonState();
             }
         }
 
@@ -580,6 +755,11 @@ namespace Game
             if (_blockButton != null)
             {
                 _blockButton.Pressed -= OnBlockButtonPressed;
+            }
+
+            if (_rewindButton != null)
+            {
+                _rewindButton.Pressed -= OnRewindButtonPressed;
             }
 
             foreach (var heart in _hearts)

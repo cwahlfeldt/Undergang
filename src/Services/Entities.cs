@@ -21,6 +21,16 @@ namespace Game
             return _nextId++;
         }
 
+        /// <summary>
+        /// Gets the current next ID value without incrementing (for snapshots)
+        /// </summary>
+        public int GetNextIdValue() => _nextId;
+
+        /// <summary>
+        /// Sets the next ID value (for restoring from snapshots)
+        /// </summary>
+        public void SetNextId(int value) => _nextId = value;
+
         public Entity AddEntity(Entity entity)
         {
             return _entities[entity.Id] = entity;

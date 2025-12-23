@@ -29,6 +29,14 @@ namespace Game
             var origin = mover.Get<Coordinate>();
             var path = PathFinder.FindPath(origin, destination, mover.Get<MoveRange>());
 
+            // Handle case where no valid path exists (destination unreachable or occupied)
+            if (path == null || path.Count == 0)
+            {
+                // No movement possible - fire event with current position and return
+                Events.OnMoveCompleted(mover, origin, origin);
+                return false;
+            }
+
             // Check for combat along the path
             bool unitDefeated = await ProcessMovementWithCombat(mover, path);
 
