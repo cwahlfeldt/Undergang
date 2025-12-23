@@ -40,6 +40,20 @@ namespace Game
 					return;
 			}
 
+			// Check if nodes are still valid (could be disposed during rewind)
+			if (attacker.Has<Instance>())
+			{
+				var node = attacker.Get<Instance>().Node;
+				if (node == null || !GodotObject.IsInstanceValid(node))
+					return;
+			}
+			if (defender.Has<Instance>())
+			{
+				var node = defender.Get<Instance>().Node;
+				if (node == null || !GodotObject.IsInstanceValid(node))
+					return;
+			}
+
 			// Check if defender has block active
 			bool hasBlock = defender.Has<BlockActive>();
 

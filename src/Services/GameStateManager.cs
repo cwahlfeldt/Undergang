@@ -215,6 +215,15 @@ namespace Game
 
             var snapshot = _history[snapshotIndex];
 
+            // Debug: Log player position before and target position from snapshot
+            if (player != null && player.Has<Coordinate>())
+            {
+                var currentPos = player.Get<Coordinate>().Value;
+                var snapshotPlayerEntity = snapshot.Entities.FirstOrDefault(e => e.Components.ContainsKey(typeof(Player)));
+                var targetPos = snapshotPlayerEntity?.AnimationOrigin;
+                GD.Print($"[GameStateManager] Rewinding player from {currentPos} to {targetPos}");
+            }
+
             // 1. Identify units that need to be respawned (were in snapshot but dead now)
             var respawnedUnitIds = new List<int>();
             var currentUnitIds = Entities.Query<Unit>().Select(e => e.Id).ToHashSet();
@@ -263,6 +272,14 @@ namespace Game
 
             // 11. Start cooldown
             _cooldownRemaining = Config.RewindCooldownTurns;
+
+            // Debug: Log player position after restore
+            var restoredPlayer = Entities.Query<Player>().FirstOrDefault();
+            if (restoredPlayer != null && restoredPlayer.Has<Coordinate>())
+            {
+                var restoredPos = restoredPlayer.Get<Coordinate>().Value;
+                GD.Print($"[GameStateManager] Player position after restore: {restoredPos}");
+            }
 
             // 12. Restart player turn
             _turnSystem?.RestartPlayerTurn(snapshot.CurrentTurnIndex);

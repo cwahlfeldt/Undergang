@@ -10,6 +10,7 @@ namespace Game
         public event Action<Entity> UnitDefeated;
         public event Action<Entity, Vector3I, Vector3I> MoveCompleted;
         public event Action<Entity> TurnChanged;
+        public event Action<Entity> TurnRestarted;  // Fired after rewind, doesn't tick cooldowns
         public event Action<Entity> TurnEnd;
         public event Action<Entity> TileSelect;
         public event Action<Entity> TileHover;
@@ -65,6 +66,14 @@ namespace Game
         public void OnTurnChanged(Entity tile)
         {
             TurnChanged?.Invoke(tile);
+        }
+
+        /// <summary>
+        /// Fired after rewind to restart player's turn without ticking cooldowns
+        /// </summary>
+        public void OnTurnRestarted(Entity unit)
+        {
+            TurnRestarted?.Invoke(unit);
         }
 
         public void EndTurn(Entity tile)

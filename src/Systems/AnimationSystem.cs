@@ -146,8 +146,17 @@ namespace Game
         /// </summary>
         private void PlayAnimation(Entity unit, AnimationState state)
         {
+            // Check if unit still has a valid Instance component
+            if (!unit.Has<Instance>())
+                return;
+
             // Get the AnimationPlayer node from the unit's scene
             var unitNode = unit.Get<Instance>().Node;
+
+            // Check if node has been disposed (can happen during rewind)
+            if (unitNode == null || !GodotObject.IsInstanceValid(unitNode))
+                return;
+
             var animationPlayer = FindAnimationPlayer(unitNode);
 
             if (animationPlayer == null)
@@ -225,6 +234,10 @@ namespace Game
         /// </summary>
         private Godot.AnimationPlayer FindAnimationPlayer(Node root)
         {
+            // Check if node has been disposed (can happen during rewind)
+            if (root == null || !GodotObject.IsInstanceValid(root))
+                return null;
+
             // First check if root itself is an AnimationPlayer
             if (root is Godot.AnimationPlayer ap)
                 return ap;
@@ -296,6 +309,17 @@ namespace Game
         public async Task PlayAttackAnimation(Entity attacker, Entity defender)
         {
             if (!attacker.Has<Unit>() || !defender.Has<Unit>())
+                return;
+
+            // Check if nodes are still valid (can be disposed during rewind)
+            if (!attacker.Has<Instance>() || !defender.Has<Instance>())
+                return;
+
+            var attackerNode = attacker.Get<Instance>().Node;
+            var defenderNode = defender.Get<Instance>().Node;
+
+            if (attackerNode == null || !GodotObject.IsInstanceValid(attackerNode) ||
+                defenderNode == null || !GodotObject.IsInstanceValid(defenderNode))
                 return;
 
             // Set attacker to Attack state
