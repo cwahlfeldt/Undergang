@@ -91,8 +91,9 @@ namespace Game
             }
 
             // Fast dash animation - direct path, no pathfinding
+            // Pass entityId so transforms are recorded for rewind
             var locations = new List<Vector3> { HexGrid.HexToWorld(destination) };
-            await Tweener.MoveThrough(mover.Get<Instance>().Node, locations, Config.DashAnimationSpeed);
+            await Tweener.MoveThrough(mover.Get<Instance>().Node, locations, Config.DashAnimationSpeed, entityId: mover.Id);
             mover.Update(new Coordinate(destination));
 
             // Trigger cooldown
@@ -175,9 +176,9 @@ namespace Game
                 _animationSystem.SetAnimationState(mover, AnimationState.Move);
             }
 
-            // Animate movement
+            // Animate movement - pass entityId so transforms are recorded for rewind
             var locations = path.Select(HexGrid.HexToWorld).ToList();
-            await Tweener.MoveThrough(mover.Get<Instance>().Node, locations);
+            await Tweener.MoveThrough(mover.Get<Instance>().Node, locations, entityId: mover.Id);
             mover.Update(new Coordinate(destination));
 
             // Animation system will set back to Idle via MoveCompleted event

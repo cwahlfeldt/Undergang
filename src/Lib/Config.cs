@@ -32,7 +32,7 @@ public record Config
     // Rewind feature settings
     public const int RewindCooldownTurns = 3;
     public const int MaxHistoryDepth = 100;
-    public const float RewindAnimationSpeed = 0.3f;
+    public const float RewindAnimationSpeed = 0.2f;  // Duration per segment for smooth reverse playback
     public const float RespawnFadeInDuration = 0.5f;
 
     // Animation settings

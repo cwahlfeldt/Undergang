@@ -24,6 +24,7 @@ namespace Game
 			_systems.Register<AnimationSystem>();
 			_systems.Register<DashSystem>();
 			_systems.Register<BlockSystem>();
+			_systems.Register<PositionHistoryRecorder>();
 			_systems.Register<GameStateManager>();
 			_systems.Register<UISystem>();
 			_systems.Register<TurnSystem>();
@@ -40,6 +41,16 @@ namespace Game
 			entityManager.Factory.CreateEnemy(UnitType.Wizard);
 
 			_systems.Initialize();
+
+			// Wire up Tweener to PositionHistoryRecorder for transform recording
+			var positionRecorder = _systems.Get<PositionHistoryRecorder>();
+			Tweener.Instance.SetPositionRecorder(positionRecorder);
+		}
+
+		public override void _Process(double delta)
+		{
+			// Call Process on all systems for per-frame updates (e.g., position recording)
+			_systems.Process((float)delta);
 		}
 
 		private async void OnTurnChanged(Entity entity)

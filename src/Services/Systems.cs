@@ -93,6 +93,20 @@ namespace Game
             await Task.WhenAll(concurrentTasks);
         }
 
+        /// <summary>
+        /// Calls Process(delta) on all registered systems. Should be called every frame.
+        /// </summary>
+        public void Process(float delta)
+        {
+            foreach (var system in _sequential.Values.Concat(_concurrent.Values))
+            {
+                if (system is System baseSystem)
+                {
+                    baseSystem.Process(delta);
+                }
+            }
+        }
+
         public void Cleanup()
         {
             foreach (var system in _sequential.Values.Concat(_concurrent.Values))

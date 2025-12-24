@@ -15,6 +15,7 @@ namespace Game
         public int EntityId { get; init; }
         public bool IsUnit { get; init; }
         public Vector3I? AnimationOrigin { get; init; }
+        public Transform3D? SnapshotTransform { get; init; }  // Full transform including rotation
         public IReadOnlyDictionary<Type, object> Components { get; init; }
     }
 
@@ -54,6 +55,7 @@ namespace Game
         private AnimationSystem _animationSystem;
         private TileHighlightSystem _tileHighlightSystem;
         private TurnSystem _turnSystem;
+        private PositionHistoryRecorder _positionRecorder;
 
         // State
         private readonly List<GameStateSnapshot> _history = new();
@@ -89,6 +91,7 @@ namespace Game
             _renderSystem = Systems.Get<RenderSystem>();
             _animationSystem = Systems.Get<AnimationSystem>();
             _tileHighlightSystem = Systems.Get<TileHighlightSystem>();
+            _positionRecorder = Systems.Get<PositionHistoryRecorder>();
             // TurnSystem reference set later to avoid circular dependency
         }
 
@@ -132,11 +135,23 @@ namespace Game
                     ? entity.Get<Coordinate>().Value
                     : null;
 
+                // Capture full transform for units (includes rotation)
+                Transform3D? snapshotTransform = null;
+                if (isUnit && entity.Has<Instance>())
+                {
+                    var node = entity.Get<Instance>().Node;
+                    if (node != null && GodotObject.IsInstanceValid(node))
+                    {
+                        snapshotTransform = node.GlobalTransform;
+                    }
+                }
+
                 entitySnapshots.Add(new EntityStateSnapshot
                 {
                     EntityId = id,
                     IsUnit = isUnit,
                     AnimationOrigin = rewindPosition,
+                    SnapshotTransform = snapshotTransform,
                     Components = components
                 });
 
@@ -243,8 +258,9 @@ namespace Game
             // 3. Restore entity state
             RestoreEntityState(snapshot);
 
-            // 4. Rebuild visual nodes for all units
-            RebuildVisualState();
+            // 4. Rebuild visual nodes for all units with correct transforms
+            // Pass respawned unit IDs so they can be hidden until fade-in
+            RebuildVisualState(snapshot, respawnedUnitIds.ToHashSet());
 
             // 5. Setup input handlers
             foreach (var unit in Entities.Query<Unit>())
@@ -270,7 +286,12 @@ namespace Game
             // 10. Remove snapshots from this point forward (can't redo)
             _history.RemoveRange(snapshotIndex, _history.Count - snapshotIndex);
 
-            // 11. Start cooldown
+            // 11. Clear position history for turns after this point and reset current turn
+            _positionRecorder?.ClearHistoryAfterTurn(snapshot.TurnNumber);
+            _positionRecorder?.SetTurnNumber(snapshot.TurnNumber);
+            _positionRecorder?.ClearCurrentTurn();
+
+            // 12. Start cooldown
             _cooldownRemaining = Config.RewindCooldownTurns;
 
             // Debug: Log player position after restore
@@ -281,7 +302,7 @@ namespace Game
                 GD.Print($"[GameStateManager] Player position after restore: {restoredPos}");
             }
 
-            // 12. Restart player turn
+            // 13. Restart player turn
             _turnSystem?.RestartPlayerTurn(snapshot.CurrentTurnIndex);
 
             return new RewindResult
@@ -346,7 +367,88 @@ namespace Game
 
         // ========== HELPER METHODS ==========
 
+        /// <summary>
+        /// Animates all units backwards through their recorded movement paths.
+        /// Creates a smooth time-reversal visual effect using full transforms (position + rotation).
+        /// </summary>
         private async Task AnimateUnitsToSnapshotPositions(GameStateSnapshot snapshot)
+        {
+            // PositionRecorder's turn number increments at the START of each player turn.
+            // Movements are recorded DURING a turn (after the turn number has been set).
+            //
+            // Timeline:
+            // - Turn 1 starts (via TurnChanged) → _currentTurnNumber becomes 1
+            // - Player moves → movements recorded under turn 1
+            // - Turn 2 starts → _currentTurnNumber becomes 2
+            // - Player triggers rewind → we're at turn 2, need turn 1's movements
+            //
+            // So we need: _currentTurnNumber - 1
+            int currentRecorderTurn = _positionRecorder?.CurrentTurnNumber ?? 0;
+            int movementTurnNumber = currentRecorderTurn - 1;
+            var movements = _positionRecorder?.GetMovementsForTurn(movementTurnNumber);
+
+            GD.Print($"[GameStateManager] Rewind: Looking for movements in turn {movementTurnNumber} (recorder current: {currentRecorderTurn}, snapshot turn: {snapshot.TurnNumber})");
+            GD.Print($"[GameStateManager] Rewind: Found {movements?.Count ?? 0} movements");
+
+            if (movements == null || movements.Count == 0)
+            {
+                GD.Print("[GameStateManager] No movements recorded, using fallback animation");
+                // Fallback: simple linear tween to target position
+                await AnimateUnitsToSnapshotPositionsFallback(snapshot);
+                return;
+            }
+
+            // Create rewind animations for each unit that moved
+            var animationTasks = new List<Task>();
+            var tweener = Tweener.Instance;
+
+            // Get unique entity IDs that moved
+            var movedEntityIds = movements.Select(m => m.EntityId).Distinct().ToList();
+
+            foreach (var entityId in movedEntityIds)
+            {
+                var currentEntity = Entities.Query<Unit>()
+                    .FirstOrDefault(e => e.Id == entityId);
+
+                if (currentEntity == null || !currentEntity.Has<Instance>())
+                    continue;
+
+                var instance = currentEntity.Get<Instance>().Node;
+                if (instance == null || !GodotObject.IsInstanceValid(instance))
+                    continue;
+
+                // Get the rewind transforms for this entity from the previous turn
+                var transforms = _positionRecorder.GetEntityRewindTransforms(entityId, movementTurnNumber);
+
+                GD.Print($"[GameStateManager] Entity {entityId}: rewind path has {transforms.Count} transforms");
+
+                if (transforms.Count < 2)
+                    continue;
+
+                // Set animation to move state during rewind
+                if (currentEntity.Has<Unit>())
+                {
+                    _animationSystem?.SetAnimationState(currentEntity, AnimationState.Move);
+                }
+
+                animationTasks.Add(tweener.PlayRewindAnimation(
+                    instance,
+                    transforms,
+                    Config.RewindAnimationSpeed
+                ));
+            }
+
+            if (animationTasks.Count > 0)
+            {
+                await Task.WhenAll(animationTasks);
+            }
+        }
+
+        /// <summary>
+        /// Fallback animation when no position history is available.
+        /// Simple linear tween to target position.
+        /// </summary>
+        private async Task AnimateUnitsToSnapshotPositionsFallback(GameStateSnapshot snapshot)
         {
             var animationTasks = new List<Task>();
 
@@ -364,7 +466,7 @@ namespace Game
                 if (currentPos == targetPos) continue;
 
                 var instance = currentEntity.Get<Instance>().Node;
-                if (instance == null) continue;
+                if (instance == null || !GodotObject.IsInstanceValid(instance)) continue;
 
                 var targetWorldPos = HexGrid.HexToWorld(new Coordinate(targetPos));
                 var tween = instance.CreateTween();
@@ -470,11 +572,16 @@ namespace Game
             }
         }
 
-        private void RebuildVisualState()
+        private void RebuildVisualState(GameStateSnapshot snapshot, HashSet<int> respawnedUnitIds = null)
         {
             var units = Entities.Query<Unit>().ToList();
             var rootNode = Entities.GetRootNode();
             var unitContainer = rootNode.GetNodeOrNull<Node3D>("Units");
+
+            // Build lookup for snapshot transforms by entity ID
+            var snapshotTransforms = snapshot.Entities
+                .Where(e => e.IsUnit && e.SnapshotTransform.HasValue)
+                .ToDictionary(e => e.EntityId, e => e.SnapshotTransform.Value);
 
             foreach (var entity in units)
             {
@@ -499,7 +606,22 @@ namespace Game
                 }
 
                 instance.Name = name;
-                instance.Position = HexGrid.HexToWorld(coord);
+
+                // Use stored transform if available, otherwise fallback to hex center
+                if (snapshotTransforms.TryGetValue(entity.Id, out var storedTransform))
+                {
+                    instance.GlobalTransform = storedTransform;
+                }
+                else
+                {
+                    instance.Position = HexGrid.HexToWorld(coord);
+                }
+
+                // Hide respawned units initially - they will fade in later
+                if (respawnedUnitIds != null && respawnedUnitIds.Contains(entity.Id))
+                {
+                    instance.Visible = false;
+                }
 
                 if (unitContainer != null)
                     unitContainer.AddChild(instance);
@@ -539,7 +661,10 @@ namespace Game
                 var instance = entity.Get<Instance>().Node;
                 if (instance == null) continue;
 
-                // Set initial transparency
+                // Make visible first (was hidden during RebuildVisualState)
+                instance.Visible = true;
+
+                // Set initial transparency to 0
                 SetNodeTransparency(instance, 0f);
 
                 // Animate fade-in
